@@ -1,32 +1,21 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-const BASE_URL = 'https://fittrackfrontend-five.vercel.app';
-
 export const metadata: Metadata = {
   title: 'FitTrack — Workout Tracker & Progress Logger',
   description: 'Track your workouts, log sets and reps, monitor personal records, and hit your weekly fitness goals.',
-  metadataBase: new URL(BASE_URL),
+  metadataBase: new URL('https://fittrackfrontend-five.vercel.app'),
   openGraph: {
     title: 'FitTrack — Workout Tracker & Progress Logger',
     description: 'Track your workouts, log sets and reps, monitor personal records, and hit your weekly fitness goals.',
-    url: BASE_URL,
+    url: 'https://fittrackfrontend-five.vercel.app',
     siteName: 'FitTrack',
     type: 'website',
-    images: [
-      {
-        url: `${BASE_URL}/opengraph-image`,
-        width: 1200,
-        height: 630,
-        alt: 'FitTrack — Workout Tracker',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'FitTrack — Workout Tracker & Progress Logger',
     description: 'Track your workouts, log sets and reps, monitor personal records, and hit your weekly fitness goals.',
-    images: [`${BASE_URL}/opengraph-image`],
   },
 };
 
