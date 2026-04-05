@@ -21,15 +21,13 @@ export function useAuth() {
 
   const login = async (email: string, password: string) => {
     const res = await authApi.login({ email, password });
-    saveToken(res.data.token);
-    setUser(res.data.user);
+    saveToken(res.data?.token || '');
+    setUser(res.data?.user || null);
     return res.data;
   };
 
   const register = async (name: string, email: string, password: string) => {
     const res = await authApi.register({ name, email, password });
-    saveToken(res.data.token);
-    setUser(res.data.user);
     return res.data;
   };
 
