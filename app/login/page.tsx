@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { EyeIcon } from '@/components/EyeIcon';
 
 export default function LoginPage() {
   const { login, user, loading } = useAuth();
@@ -87,7 +88,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword(p => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
-                {showPassword ? '🙈' : '👁️'}
+                <EyeIcon open={showPassword} />
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/lib/auth';
+import { EyeIcon } from '@/components/EyeIcon';
 
 export default function RegisterPage() {
   return (
@@ -103,7 +104,7 @@ function RegisterForm() {
                 onClick={() => setShowPassword(p => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
-                {showPassword ? '🙈' : '👁️'}
+                <EyeIcon open={showPassword} />
               </button>
             </div>
           </div>

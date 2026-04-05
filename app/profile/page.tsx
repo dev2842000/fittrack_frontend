@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import { EyeIcon } from '@/components/EyeIcon';
 
 interface Profile {
   id: number;
@@ -225,7 +226,7 @@ function ChangePasswordForm() {
               />
               <button type="button" onClick={() => setShowCurrent(p => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                {showCurrent ? '🙈' : '👁️'}
+                <EyeIcon open={showCurrent} />
               </button>
             </div>
           </Field>
@@ -241,7 +242,7 @@ function ChangePasswordForm() {
               />
               <button type="button" onClick={() => setShowNext(p => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                {showNext ? '🙈' : '👁️'}
+                <EyeIcon open={showNext} />
               </button>
             </div>
           </Field>
