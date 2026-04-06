@@ -4,11 +4,11 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'FitTrack — Workout Tracker & Progress Logger',
   description: 'Track your workouts, log sets and reps, monitor personal records, and hit your weekly fitness goals.',
-  metadataBase: new URL('https://fittrackfrontend-five.vercel.app'),
+  metadataBase: new URL('https://fittrack-frontend-three.vercel.app'),
   openGraph: {
     title: 'FitTrack — Workout Tracker & Progress Logger',
     description: 'Track your workouts, log sets and reps, monitor personal records, and hit your weekly fitness goals.',
-    url: 'https://fittrackfrontend-five.vercel.app',
+    url: 'https://fittrack-frontend-three.vercel.app',
     siteName: 'FitTrack',
     type: 'website',
   },
