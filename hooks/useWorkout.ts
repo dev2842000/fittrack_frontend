@@ -25,14 +25,21 @@ export interface Workout {
   exercises: WorkoutExercise[];
 }
 
+export interface PreviousBest {
+  weight_kg: number | null;
+  reps: number;
+}
+
 export function useWorkout() {
   const [workout, setWorkout] = useState<Workout | null>(null);
+  const [previousBest, setPreviousBest] = useState<Record<number, PreviousBest>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchActive = useCallback(async () => {
     try {
       const res = await api.get('/workouts/active');
       setWorkout(res.data.workout);
+      setPreviousBest(res.data.previousBest || {});
     } catch (err) {
       console.error(err);
     } finally {
@@ -47,6 +54,13 @@ export function useWorkout() {
     const newWorkout = { ...res.data.workout, exercises: [] };
     setWorkout(newWorkout);
     return newWorkout;
+  };
+
+  const startFromTemplate = async (templateId: number) => {
+    const res = await api.post(`/workouts/from-template/${templateId}`);
+    const newWorkout = { ...res.data.workout, exercises: [] };
+    setWorkout(newWorkout);
+    return { workout: newWorkout, templateExercises: res.data.templateExercises };
   };
 
   const logSet = async (exerciseId: number, exerciseName: string, muscleGroup: string, weightKg: number | null, reps: number) => {
@@ -87,7 +101,9 @@ export function useWorkout() {
   const completeWorkout = async () => {
     if (!workout) return;
     await api.patch(`/workouts/${workout.id}/complete`);
+    const completedId = workout.id;
     setWorkout(null);
+    return completedId;
   };
 
   const discardWorkout = async () => {
@@ -96,5 +112,5 @@ export function useWorkout() {
     setWorkout(null);
   };
 
-  return { workout, loading, startWorkout, logSet, deleteSet, completeWorkout, discardWorkout };
+  return { workout, loading, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout };
 }
