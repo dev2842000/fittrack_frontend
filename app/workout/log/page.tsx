@@ -53,9 +53,6 @@ function WorkoutSummaryModal({
   onDone: () => void;
 }) {
   const totalSets = snapshot.exercises.reduce((a, ex) => a + ex.sets.length, 0);
-  const totalVolume = snapshot.exercises.reduce((a, ex) =>
-    a + ex.sets.reduce((b, s) => b + (s.weight_kg ?? 0) * s.reps, 0), 0
-  );
   const durationMs = Date.now() - new Date(snapshot.started_at).getTime();
   const durationMin = Math.round(durationMs / 60000);
   const h = Math.floor(durationMin / 60);
@@ -71,17 +68,15 @@ function WorkoutSummaryModal({
           <p className="text-green-100 text-sm mt-0.5">{snapshot.name || 'Great session'}</p>
         </div>
         <div className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Duration', value: durationStr, icon: '⏱️' },
-              { label: 'Exercises', value: snapshot.exercises.length, icon: '🏋️' },
-              { label: 'Total Sets', value: totalSets, icon: '📋' },
-              { label: 'Volume', value: `${Math.round(totalVolume).toLocaleString()}kg`, icon: '⚡' },
+              { label: 'Duration', value: durationStr },
+              { label: 'Exercises', value: snapshot.exercises.length },
+              { label: 'Sets', value: totalSets },
             ].map(stat => (
               <div key={stat.label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 text-center">
-                <p className="text-xl">{stat.icon}</p>
-                <p className="text-lg font-extrabold text-gray-900 dark:text-white mt-0.5">{stat.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
+                <p className="text-lg font-extrabold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{stat.label}</p>
               </div>
             ))}
           </div>
