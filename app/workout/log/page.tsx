@@ -579,23 +579,21 @@ function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onE
 
             if (editingSetId === set.id) {
               return (
-                <div key={set.id} className="flex items-center gap-1.5 py-1">
-                  <span className="w-8 text-center text-sm text-gray-400 flex-shrink-0">{set.set_number}</span>
+                <div key={set.id} className="flex items-center gap-2 py-1">
+                  <span className="w-6 text-center text-sm text-gray-400 flex-shrink-0">{set.set_number}</span>
                   <input type="number" placeholder="kg" value={editWeight} onChange={e => setEditWeight(e.target.value)}
                     min="0" step="0.5"
-                    className="flex-1 px-2 py-1.5 text-sm border-2 border-green-400 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none" />
+                    className="flex-1 min-w-0 px-2 py-2 text-sm border-2 border-green-400 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none" />
                   <input type="number" placeholder="reps" value={editReps} onChange={e => setEditReps(e.target.value)} min="1"
-                    className="flex-1 px-2 py-1.5 text-sm border-2 border-green-400 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none" />
-                  <div className="flex gap-1 flex-shrink-0 w-28 justify-end">
-                    <button onClick={() => handleEditSave(set.id)} disabled={saving}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors">
-                      <SaveIcon /> {saving ? '…' : 'Save'}
-                    </button>
-                    <button onClick={() => setEditingSetId(null)}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                      <XIcon />
-                    </button>
-                  </div>
+                    className="flex-1 min-w-0 px-2 py-2 text-sm border-2 border-green-400 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none" />
+                  <button onClick={() => handleEditSave(set.id)} disabled={saving}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white transition-colors">
+                    <SaveIcon />
+                  </button>
+                  <button onClick={() => setEditingSetId(null)}
+                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <XIcon />
+                  </button>
                 </div>
               );
             }
