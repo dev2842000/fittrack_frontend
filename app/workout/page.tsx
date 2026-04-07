@@ -55,11 +55,13 @@ export default function WorkoutPage() {
 function WorkoutHistory() {
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeWorkout, setActiveWorkout] = useState<{ id: number; name: string | null; started_at: string } | null>(null);
 
   useEffect(() => {
-    api.get('/workouts')
-      .then(res => setWorkouts(res.data.workouts))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/workouts').then(res => setWorkouts(res.data.workouts)),
+      api.get('/workouts/active').then(res => setActiveWorkout(res.data.workout)),
+    ]).finally(() => setLoading(false));
   }, []);
 
   return (
@@ -77,9 +79,31 @@ function WorkoutHistory() {
           href="/workout/log"
           className="relative flex-shrink-0 px-4 py-2.5 bg-white hover:bg-green-50 text-green-600 text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
         >
-          + Start Workout
+          {activeWorkout ? '▶ Resume' : '+ Start Workout'}
         </Link>
       </div>
+
+      {/* Active workout banner */}
+      {activeWorkout && (
+        <Link
+          href="/workout/log"
+          className="block bg-green-500 hover:bg-green-600 rounded-2xl p-4 shadow-lg shadow-green-500/30 transition-all hover:scale-[1.01] active:scale-[0.99]"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <p className="text-xs text-green-100 font-bold uppercase tracking-wider">Workout in progress</p>
+              </div>
+              <p className="text-white font-extrabold text-base">{activeWorkout.name || 'Unnamed Workout'}</p>
+              <p className="text-green-100 text-xs mt-0.5">
+                Started at {new Date(activeWorkout.started_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+            <span className="text-white text-2xl">▶</span>
+          </div>
+        </Link>
+      )}
 
       {loading ? (
         <div className="space-y-3">

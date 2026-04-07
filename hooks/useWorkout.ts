@@ -115,5 +115,9 @@ export function useWorkout() {
     setWorkout(null);
   };
 
-  return { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch: fetchActive };
+  const mergePreviousBest = (extra: Record<number, PreviousBest>) => {
+    setPreviousBest(prev => ({ ...extra, ...prev })); // existing data wins
+  };
+
+  return { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch: fetchActive, mergePreviousBest };
 }

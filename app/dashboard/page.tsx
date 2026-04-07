@@ -101,6 +101,7 @@ function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [monthsData, setMonthsData] = useState<Record<number, MonthActivity>>({});
   const [loadingMonths, setLoadingMonths] = useState(false);
+  const [activeWorkout, setActiveWorkout] = useState<{ id: number; name: string | null } | null | undefined>(undefined); // undefined = not yet fetched
   const [showNameModal, setShowNameModal] = useState(false);
   const [starting, setStarting] = useState(false);
 
@@ -114,6 +115,7 @@ function Dashboard() {
     api.get('/progress/summary').then(r => setSummary(r.data)).catch(() => {});
     api.get('/goals').then(r => setGoal(r.data)).catch(() => {});
     api.get('/progress/streaks').then(r => setStreak(r.data)).catch(() => {});
+    api.get('/workouts/active').then(r => setActiveWorkout(r.data.workout ?? null)).catch(() => setActiveWorkout(null));
   }, []);
 
   const handleStartWorkout = async (name: string) => {
@@ -168,13 +170,23 @@ function Dashboard() {
             Ready to train? Log your sets and track your progress.
           </p>
         </div>
-        <button
-          onClick={() => setShowNameModal(true)}
-          disabled={starting}
-          className="relative flex-shrink-0 px-5 py-2.5 bg-white hover:bg-green-50 disabled:opacity-50 text-green-600 font-bold rounded-xl text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-        >
-          {starting ? 'Starting...' : '▶ Start Workout'}
-        </button>
+        {activeWorkout ? (
+          <Link
+            href="/workout/log"
+            className="relative flex-shrink-0 px-5 py-2.5 bg-white hover:bg-green-50 text-green-600 font-bold rounded-xl text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-1.5"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            Resume Workout
+          </Link>
+        ) : (
+          <button
+            onClick={() => setShowNameModal(true)}
+            disabled={starting || activeWorkout === undefined}
+            className="relative flex-shrink-0 px-5 py-2.5 bg-white hover:bg-green-50 disabled:opacity-50 text-green-600 font-bold rounded-xl text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            {starting ? 'Starting...' : '▶ Start Workout'}
+          </button>
+        )}
       </div>
 
       {showNameModal && (
@@ -364,14 +376,26 @@ function Dashboard() {
           <p className="font-bold text-gray-900 dark:text-white group-hover:text-blue-500 transition-colors">Exercise Library</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">52 exercises across 10 muscle groups</p>
         </Link>
-        <button
-          onClick={() => setShowNameModal(true)}
-          className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 hover:shadow-xl hover:scale-105 border-l-4 border-green-400 transition-all duration-200 text-left"
-        >
-          <div className="text-3xl mb-3">💪</div>
-          <p className="font-bold text-gray-900 dark:text-white group-hover:text-green-500 transition-colors">Start Workout</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Log sets, weight &amp; reps</p>
-        </button>
+        {activeWorkout ? (
+          <Link
+            href="/workout/log"
+            className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 hover:shadow-xl hover:scale-105 border-l-4 border-green-400 transition-all duration-200 text-left"
+          >
+            <div className="text-3xl mb-3 flex items-center gap-2">💪 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /></div>
+            <p className="font-bold text-gray-900 dark:text-white group-hover:text-green-500 transition-colors">Resume Workout</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activeWorkout.name || 'Workout in progress'}</p>
+          </Link>
+        ) : (
+          <button
+            onClick={() => setShowNameModal(true)}
+            disabled={activeWorkout === undefined}
+            className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 hover:shadow-xl hover:scale-105 border-l-4 border-green-400 transition-all duration-200 text-left disabled:opacity-60"
+          >
+            <div className="text-3xl mb-3">💪</div>
+            <p className="font-bold text-gray-900 dark:text-white group-hover:text-green-500 transition-colors">Start Workout</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Log sets, weight &amp; reps</p>
+          </button>
+        )}
         <Link
           href="/progress"
           className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 hover:shadow-xl hover:scale-105 border-l-4 border-purple-400 transition-all duration-200"

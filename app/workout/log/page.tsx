@@ -32,7 +32,7 @@ interface Template {
 }
 
 function WorkoutTracker() {
-  const { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch } = useWorkout();
+  const { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch, mergePreviousBest } = useWorkout();
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -42,6 +42,37 @@ function WorkoutTracker() {
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [completedWorkoutId, setCompletedWorkoutId] = useState<number | null>(null);
   const [localExercises, setLocalExercises] = useState<LocalExercise[]>([]);
+
+  // Restore localExercises from localStorage when workout loads
+  useEffect(() => {
+    if (!workout) return;
+    const saved = localStorage.getItem(`workout_exercises_${workout.id}`);
+    if (saved) {
+      try {
+        const parsed: LocalExercise[] = JSON.parse(saved);
+        const loggedIds = new Set(workout.exercises.map(e => e.exercise_id));
+        const restored = parsed.filter(e => !loggedIds.has(e.exercise_id));
+        setLocalExercises(restored);
+        // Fetch previousBest for restored local exercises
+        const missingIds = restored.map(e => e.exercise_id).filter(id => !previousBest[id]);
+        if (missingIds.length > 0) {
+          api.get(`/workouts/previous-best?exerciseIds=${missingIds.join(',')}`).then(res => {
+            mergePreviousBest(res.data.previousBest);
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+  }, [workout?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist localExercises to localStorage whenever they change
+  useEffect(() => {
+    if (!workout) return;
+    if (localExercises.length > 0) {
+      localStorage.setItem(`workout_exercises_${workout.id}`, JSON.stringify(localExercises));
+    } else {
+      localStorage.removeItem(`workout_exercises_${workout.id}`);
+    }
+  }, [localExercises, workout?.id]);
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -57,12 +88,19 @@ function WorkoutTracker() {
     return () => { if (restRef.current) clearInterval(restRef.current); };
   }, [restTimer]);
 
-  const handlePickExercise = (id: number, name: string, muscle: string) => {
+  const handlePickExercise = async (id: number, name: string, muscle: string) => {
     setShowExercisePicker(false);
     const inWorkout = workout?.exercises.some(e => e.exercise_id === id);
     const inLocal = localExercises.some(e => e.exercise_id === id);
     if (!inWorkout && !inLocal) {
       setLocalExercises(prev => [...prev, { exercise_id: id, exercise_name: name, muscle_group: muscle }]);
+      // Fetch previousBest for this exercise if not already known
+      if (!previousBest[id]) {
+        try {
+          const res = await api.get(`/workouts/previous-best?exerciseIds=${id}`);
+          mergePreviousBest(res.data.previousBest);
+        } catch {}
+      }
     }
   };
 
@@ -77,19 +115,45 @@ function WorkoutTracker() {
   const handleStart = async (name: string) => {
     setShowNameModal(false);
     setStarting(true);
-    try { await startWorkout(name.trim() || undefined); } finally { setStarting(false); }
+    try {
+      await startWorkout(name.trim() || undefined);
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        // Already have an active workout — just load it
+        await refetch();
+      }
+    } finally {
+      setStarting(false);
+    }
   };
 
   const handleStartFromTemplate = async (templateId: number) => {
     setShowNameModal(false);
     setStarting(true);
     try {
-      const { templateExercises } = await startFromTemplate(templateId);
-      setLocalExercises(templateExercises.map((e: LocalExercise) => ({
+      let templateExercises: LocalExercise[] = [];
+      try {
+        ({ templateExercises } = await startFromTemplate(templateId));
+      } catch (err: any) {
+        if (err.response?.status === 409) {
+          await refetch();
+          return;
+        }
+        throw err;
+      }
+      const exs: LocalExercise[] = templateExercises.map((e: LocalExercise) => ({
         exercise_id: e.exercise_id,
         exercise_name: e.exercise_name,
         muscle_group: e.muscle_group,
-      })));
+      }));
+      setLocalExercises(exs);
+      // Fetch previousBest for all template exercises upfront
+      const ids = exs.map(e => e.exercise_id);
+      if (ids.length > 0) {
+        api.get(`/workouts/previous-best?exerciseIds=${ids.join(',')}`).then(res => {
+          mergePreviousBest(res.data.previousBest);
+        }).catch(() => {});
+      }
     } finally { setStarting(false); }
   };
 
