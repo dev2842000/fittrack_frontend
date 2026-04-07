@@ -86,26 +86,26 @@ export default function Navbar() {
 
       {/* Mobile bottom tab bar */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 pb-safe">
-        <div className="flex items-center justify-around h-16">
+        <div className="flex items-center justify-around h-20">
           {links.map(link => {
             const active = isActive(link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 ${
+                className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 ${
                   active ? 'text-green-500' : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
-                <span className={`text-xl leading-none transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-green-500 rounded-full" />
+                )}
+                <span className={`text-3xl leading-none transition-transform duration-200 ${active ? 'scale-110' : ''}`}>
                   {link.icon}
                 </span>
-                <span className={`text-[10px] font-semibold ${active ? 'text-green-500' : ''}`}>
+                <span className={`text-xs font-semibold ${active ? 'text-green-500' : ''}`}>
                   {link.label}
                 </span>
-                {active && (
-                  <span className="absolute bottom-0 w-8 h-0.5 bg-green-500 rounded-full" />
-                )}
               </Link>
             );
           })}
@@ -113,7 +113,7 @@ export default function Navbar() {
       </div>
 
       {/* Bottom padding so content isn't hidden behind tab bar on mobile */}
-      <div className="sm:hidden h-16" />
+      <div className="sm:hidden h-20" />
     </>
   );
 }
