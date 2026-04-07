@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
-import { useWorkout, WorkoutExercise, PreviousBest } from '@/hooks/useWorkout';
+import { useWorkout, WorkoutExercise, WorkoutSet, PreviousBest } from '@/hooks/useWorkout';
 import api from '@/lib/api';
 
 export default function WorkoutLogPage() {
@@ -31,8 +31,86 @@ interface Template {
   exercise_names: string[];
 }
 
+// Feature 1: format elapsed time
+function formatElapsed(startedAt: string): string {
+  const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  return `${m} min`;
+}
+
+// Feature 5: Workout summary modal
+function WorkoutSummaryModal({
+  snapshot,
+  prCount,
+  onSaveTemplate,
+  onDone,
+}: {
+  snapshot: { name: string | null; started_at: string; exercises: WorkoutExercise[] };
+  prCount: number;
+  onSaveTemplate: () => void;
+  onDone: () => void;
+}) {
+  const totalSets = snapshot.exercises.reduce((a, ex) => a + ex.sets.length, 0);
+  const totalVolume = snapshot.exercises.reduce((a, ex) =>
+    a + ex.sets.reduce((b, s) => b + (s.weight_kg ?? 0) * s.reps, 0), 0
+  );
+  const durationMs = Date.now() - new Date(snapshot.started_at).getTime();
+  const durationMin = Math.round(durationMs / 60000);
+  const h = Math.floor(durationMin / 60);
+  const m = durationMin % 60;
+  const durationStr = h > 0 ? `${h}h ${m}m` : `${durationMin} min`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5 text-center">
+          <p className="text-4xl mb-1">🎉</p>
+          <h2 className="text-xl font-extrabold text-white">Workout Complete!</h2>
+          <p className="text-green-100 text-sm mt-0.5">{snapshot.name || 'Great session'}</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Duration', value: durationStr, icon: '⏱️' },
+              { label: 'Exercises', value: snapshot.exercises.length, icon: '🏋️' },
+              { label: 'Total Sets', value: totalSets, icon: '📋' },
+              { label: 'Volume', value: `${Math.round(totalVolume).toLocaleString()}kg`, icon: '⚡' },
+            ].map(stat => (
+              <div key={stat.label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 text-center">
+                <p className="text-xl">{stat.icon}</p>
+                <p className="text-lg font-extrabold text-gray-900 dark:text-white mt-0.5">{stat.value}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+          {prCount > 0 && (
+            <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-4 py-2.5">
+              <span className="text-xl">🏆</span>
+              <p className="text-sm font-bold text-yellow-700 dark:text-yellow-400">
+                {prCount} Personal Record{prCount > 1 ? 's' : ''} set this workout!
+              </p>
+            </div>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button onClick={onDone}
+              className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              Done
+            </button>
+            <button onClick={onSaveTemplate}
+              className="flex-1 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-green-500/25">
+              Save as Template?
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WorkoutTracker() {
-  const { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch, mergePreviousBest } = useWorkout();
+  const { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, editSet, deleteSet, completeWorkout, discardWorkout, refetch, mergePreviousBest } = useWorkout();
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -40,8 +118,36 @@ function WorkoutTracker() {
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [completedWorkoutId, setCompletedWorkoutId] = useState<number | null>(null);
+  const [completedSnapshot, setCompletedSnapshot] = useState<WorkoutExercise[] | null>(null);
+  const [completedWorkoutName, setCompletedWorkoutName] = useState<string | null>(null);
+  const [completedStartedAt, setCompletedStartedAt] = useState<string>('');
   const [localExercises, setLocalExercises] = useState<LocalExercise[]>([]);
+
+  // Feature 4: track PR set IDs across the whole tracker
+  const [prSetIds, setPrSetIds] = useState<Set<number>>(new Set());
+
+  // Feature 1: elapsed timer display
+  const [, forceTickDisplay] = useState(0);
+  useEffect(() => {
+    if (!workout) return;
+    const id = setInterval(() => forceTickDisplay(n => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [workout?.id]);
+
+  // Feature 10: rest duration from localStorage
+  const [restDuration, setRestDuration] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('rest_duration') || '90');
+    }
+    return 90;
+  });
+
+  const handleSetRestDuration = (d: number) => {
+    setRestDuration(d);
+    localStorage.setItem('rest_duration', String(d));
+  };
 
   // Restore localExercises from localStorage when workout loads
   useEffect(() => {
@@ -53,7 +159,6 @@ function WorkoutTracker() {
         const loggedIds = new Set(workout.exercises.map(e => e.exercise_id));
         const restored = parsed.filter(e => !loggedIds.has(e.exercise_id));
         setLocalExercises(restored);
-        // Fetch previousBest for restored local exercises
         const missingIds = restored.map(e => e.exercise_id).filter(id => !previousBest[id]);
         if (missingIds.length > 0) {
           api.get(`/workouts/previous-best?exerciseIds=${missingIds.join(',')}`).then(res => {
@@ -73,6 +178,7 @@ function WorkoutTracker() {
       localStorage.removeItem(`workout_exercises_${workout.id}`);
     }
   }, [localExercises, workout?.id]);
+
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -94,7 +200,6 @@ function WorkoutTracker() {
     const inLocal = localExercises.some(e => e.exercise_id === id);
     if (!inWorkout && !inLocal) {
       setLocalExercises(prev => [...prev, { exercise_id: id, exercise_name: name, muscle_group: muscle }]);
-      // Fetch previousBest for this exercise if not already known
       if (!previousBest[id]) {
         try {
           const res = await api.get(`/workouts/previous-best?exerciseIds=${id}`);
@@ -105,10 +210,24 @@ function WorkoutTracker() {
   };
 
   const handleLogSet = async (exerciseId: number, exerciseName: string, muscleGroup: string, weight: number | null, reps: number) => {
-    await logSet(exerciseId, exerciseName, muscleGroup, weight, reps);
+    const newSet = await logSet(exerciseId, exerciseName, muscleGroup, weight, reps);
     setLocalExercises(prev => prev.filter(e => e.exercise_id !== exerciseId));
-    // Start rest timer
-    setRestTimer(90);
+
+    // Feature 4: check for PR
+    if (newSet) {
+      const best = previousBest[exerciseId];
+      if (best) {
+        const isWeightPR = weight !== null && best.weight_kg !== null && weight > best.weight_kg;
+        const isSameWeightMoreReps = weight !== null && best.weight_kg !== null && weight === best.weight_kg && reps > best.reps;
+        const isBodyweightPR = weight === null && best.weight_kg === null && reps > best.reps;
+        if (isWeightPR || isSameWeightMoreReps || isBodyweightPR) {
+          setPrSetIds(prev => new Set(Array.from(prev).concat(newSet.id)));
+        }
+      }
+    }
+
+    // Feature 10: use restDuration
+    setRestTimer(restDuration);
     if (restRef.current) clearInterval(restRef.current);
   };
 
@@ -119,7 +238,6 @@ function WorkoutTracker() {
       await startWorkout(name.trim() || undefined);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        // Already have an active workout — just load it
         await refetch();
       }
     } finally {
@@ -147,7 +265,6 @@ function WorkoutTracker() {
         muscle_group: e.muscle_group,
       }));
       setLocalExercises(exs);
-      // Fetch previousBest for all template exercises upfront
       const ids = exs.map(e => e.exercise_id);
       if (ids.length > 0) {
         api.get(`/workouts/previous-best?exerciseIds=${ids.join(',')}`).then(res => {
@@ -160,9 +277,14 @@ function WorkoutTracker() {
   const handleComplete = async () => {
     setCompleting(true);
     try {
-      const workoutId = await completeWorkout();
-      setCompletedWorkoutId(workoutId ?? null);
-      setShowSaveTemplate(true);
+      const result = await completeWorkout();
+      if (result) {
+        setCompletedWorkoutId(result.id);
+        setCompletedSnapshot(result.snapshot.exercises);
+        setCompletedWorkoutName(result.snapshot.name);
+        setCompletedStartedAt(result.snapshot.started_at);
+        setShowSummary(true);
+      }
     } finally { setCompleting(false); }
   };
 
@@ -216,9 +338,17 @@ function WorkoutTracker() {
             onCancel={() => router.replace('/workout')}
           />
         )}
+        {showSummary && completedSnapshot && (
+          <WorkoutSummaryModal
+            snapshot={{ name: completedWorkoutName, started_at: completedStartedAt, exercises: completedSnapshot }}
+            prCount={prSetIds.size}
+            onSaveTemplate={() => { setShowSummary(false); setShowSaveTemplate(true); }}
+            onDone={() => { setShowSummary(false); router.push('/workout'); }}
+          />
+        )}
         {showSaveTemplate && (
           <SaveTemplateModal
-            defaultName={workout ?? null}
+            defaultName={{ name: completedWorkoutName }}
             onSave={handleSaveTemplate}
             onSkip={() => { setShowSaveTemplate(false); router.push('/workout'); }}
           />
@@ -230,6 +360,9 @@ function WorkoutTracker() {
   const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
   const totalExercises = workout.exercises.length + localExercises.length;
 
+  // Feature 1: elapsed
+  const elapsed = formatElapsed(workout.started_at);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
       {/* Header */}
@@ -239,6 +372,8 @@ function WorkoutTracker() {
           <p className="font-bold text-gray-900 dark:text-white">{workout.name || 'Workout'}</p>
           <p className="text-xs text-gray-400 mt-0.5">
             {new Date(workout.started_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            {' · '}
+            <span className="text-green-500 font-semibold">{elapsed}</span>
             {totalExercises > 0 && ` · ${totalExercises} exercises · ${totalSets} sets`}
           </p>
         </div>
@@ -254,19 +389,32 @@ function WorkoutTracker() {
         </div>
       </div>
 
-      {/* Rest timer */}
+      {/* Rest timer — Feature 10: duration picker */}
       {restTimer !== null && (
-        <div className="bg-gray-900 rounded-2xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">⏱️</span>
-            <div>
-              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Rest Timer</p>
-              <p className="text-2xl font-extrabold text-white">{Math.floor(restTimer / 60)}:{String(restTimer % 60).padStart(2, '0')}</p>
+        <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⏱️</span>
+              <div>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Rest Timer</p>
+                <p className="text-2xl font-extrabold text-white">{Math.floor(restTimer / 60)}:{String(restTimer % 60).padStart(2, '0')}</p>
+              </div>
             </div>
+            <button onClick={() => setRestTimer(null)} className="text-xs text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-xl transition-colors">
+              Skip
+            </button>
           </div>
-          <button onClick={() => setRestTimer(null)} className="text-xs text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-xl transition-colors">
-            Skip
-          </button>
+          <div className="flex gap-2">
+            {[{ label: '60s', val: 60 }, { label: '90s', val: 90 }, { label: '2m', val: 120 }, { label: '3m', val: 180 }].map(opt => (
+              <button
+                key={opt.val}
+                onClick={() => handleSetRestDuration(opt.val)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${restDuration === opt.val ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -281,13 +429,19 @@ function WorkoutTracker() {
           {workout.exercises.map(ex => (
             <ExerciseCard key={ex.exercise_id} exercise={ex}
               prevBest={previousBest[ex.exercise_id] || null}
-              onLogSet={handleLogSet} onDeleteSet={deleteSet} />
+              prSetIds={prSetIds}
+              onLogSet={handleLogSet}
+              onDeleteSet={deleteSet}
+              onEditSet={editSet} />
           ))}
           {localExercises.map(ex => (
             <ExerciseCard key={`local-${ex.exercise_id}`}
               exercise={{ ...ex, sets: [] }}
               prevBest={previousBest[ex.exercise_id] || null}
-              onLogSet={handleLogSet} onDeleteSet={deleteSet} />
+              prSetIds={prSetIds}
+              onLogSet={handleLogSet}
+              onDeleteSet={deleteSet}
+              onEditSet={editSet} />
           ))}
         </div>
       )}
@@ -312,14 +466,27 @@ function WorkoutTracker() {
           message="All logged sets will be lost."
           confirmLabel="Discard"
           confirmClass="bg-red-500 hover:bg-red-600"
-          onConfirm={async () => { await discardWorkout(); setShowConfirmDiscard(false); }}
+          onConfirm={async () => {
+            await discardWorkout();
+            setShowConfirmDiscard(false);
+            router.replace('/workout');
+          }}
           onCancel={() => setShowConfirmDiscard(false)}
+        />
+      )}
+
+      {showSummary && completedSnapshot && (
+        <WorkoutSummaryModal
+          snapshot={{ name: completedWorkoutName, started_at: completedStartedAt, exercises: completedSnapshot }}
+          prCount={prSetIds.size}
+          onSaveTemplate={() => { setShowSummary(false); setShowSaveTemplate(true); }}
+          onDone={() => { setShowSummary(false); router.push('/workout'); }}
         />
       )}
 
       {showSaveTemplate && (
         <SaveTemplateModal
-          defaultName={workout}
+          defaultName={{ name: completedWorkoutName }}
           onSave={handleSaveTemplate}
           onSkip={() => { setShowSaveTemplate(false); router.push('/workout'); }}
         />
@@ -328,16 +495,24 @@ function WorkoutTracker() {
   );
 }
 
-function ExerciseCard({ exercise, prevBest, onLogSet, onDeleteSet }: {
-  exercise: WorkoutExercise | (LocalExercise & { sets: [] });
+function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onEditSet }: {
+  exercise: WorkoutExercise | (LocalExercise & { sets: WorkoutSet[] });
   prevBest: PreviousBest | null;
+  prSetIds: Set<number>;
   onLogSet: (id: number, name: string, muscle: string, weight: number | null, reps: number) => Promise<void>;
   onDeleteSet: (setId: number, exerciseId: number) => Promise<void>;
+  onEditSet: (setId: number, exerciseId: number, weightKg: number | null, reps: number) => Promise<void>;
 }) {
   const lastSet = exercise.sets[exercise.sets.length - 1];
   const [weight, setWeight] = useState(lastSet?.weight_kg?.toString() ?? prevBest?.weight_kg?.toString() ?? '');
   const [reps, setReps] = useState(lastSet?.reps?.toString() ?? prevBest?.reps?.toString() ?? '');
   const [logging, setLogging] = useState(false);
+
+  // Feature 3: inline edit state
+  const [editingSetId, setEditingSetId] = useState<number | null>(null);
+  const [editWeight, setEditWeight] = useState('');
+  const [editReps, setEditReps] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleLog = async () => {
     if (!reps || parseInt(reps) < 1) return;
@@ -348,6 +523,29 @@ function ExerciseCard({ exercise, prevBest, onLogSet, onDeleteSet }: {
     } finally { setLogging(false); }
   };
 
+  const handleEditStart = (set: WorkoutSet) => {
+    setEditingSetId(set.id);
+    setEditWeight(set.weight_kg?.toString() ?? '');
+    setEditReps(set.reps.toString());
+  };
+
+  const handleEditSave = async (setId: number) => {
+    if (!editReps || parseInt(editReps) < 1) return;
+    setSaving(true);
+    try {
+      await onEditSet(setId, exercise.exercise_id, editWeight ? parseFloat(editWeight) : null, parseInt(editReps));
+      setEditingSetId(null);
+    } finally { setSaving(false); }
+  };
+
+  // Feature 8: progressive overload nudge
+  const showNudge = prevBest
+    && weight !== '' && reps !== ''
+    && parseFloat(weight) === prevBest.weight_kg
+    && parseInt(reps) === prevBest.reps;
+
+  const sets = exercise.sets as WorkoutSet[];
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -356,7 +554,7 @@ function ExerciseCard({ exercise, prevBest, onLogSet, onDeleteSet }: {
           <p className="text-xs text-gray-500 dark:text-gray-400">{exercise.muscle_group}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-400">{exercise.sets.length} {exercise.sets.length === 1 ? 'set' : 'sets'}</p>
+          <p className="text-sm text-gray-400">{sets.length} {sets.length === 1 ? 'set' : 'sets'}</p>
           {prevBest && (
             <p className="text-xs text-green-500 font-semibold mt-0.5">
               Last: {prevBest.weight_kg ? `${Math.round(prevBest.weight_kg)}kg ×` : ''} {prevBest.reps} reps
@@ -365,33 +563,88 @@ function ExerciseCard({ exercise, prevBest, onLogSet, onDeleteSet }: {
         </div>
       </div>
 
-      {exercise.sets.length > 0 && (
+      {sets.length > 0 && (
         <div className="px-4 py-2 space-y-1">
-          <div className="grid grid-cols-4 text-xs text-gray-400 font-medium mb-1">
-            <span>Set</span><span>Weight</span><span>Reps</span><span></span>
+          <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] text-xs text-gray-400 font-medium mb-1 gap-2">
+            <span>Set</span><span>Weight</span><span>Reps</span><span></span><span></span>
           </div>
-          {exercise.sets.map(set => (
-            <div key={set.id} className="grid grid-cols-4 text-sm items-center">
-              <span className="text-gray-500 dark:text-gray-400">{set.set_number}</span>
-              <span className="font-medium text-gray-900 dark:text-white">{set.weight_kg ? `${Math.round(set.weight_kg)}kg` : '—'}</span>
-              <span className="font-medium text-gray-900 dark:text-white">{set.reps}</span>
-              <button onClick={() => onDeleteSet(set.id, exercise.exercise_id)}
-                className="text-gray-300 hover:text-red-400 transition-colors text-xs justify-self-end">✕</button>
-            </div>
-          ))}
+          {sets.map((set, idx) => {
+            const isLast = idx === sets.length - 1;
+            const isPR = prSetIds.has(set.id);
+
+            if (editingSetId === set.id) {
+              return (
+                <div key={set.id} className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">{set.set_number}</span>
+                  <input type="number" placeholder="kg" value={editWeight} onChange={e => setEditWeight(e.target.value)}
+                    min="0" step="0.5"
+                    className="px-2 py-1 text-sm border border-green-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full" />
+                  <input type="number" placeholder="reps" value={editReps} onChange={e => setEditReps(e.target.value)} min="1"
+                    className="px-2 py-1 text-sm border border-green-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full" />
+                  <button onClick={() => handleEditSave(set.id)} disabled={saving}
+                    className="text-xs text-green-500 font-bold hover:text-green-600 transition-colors px-1">
+                    {saving ? '...' : '✓'}
+                  </button>
+                  <button onClick={() => setEditingSetId(null)}
+                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-1">
+                    ✕
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div key={set.id} className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 text-sm items-center">
+                <span className="text-gray-500 dark:text-gray-400">{set.set_number}</span>
+                <span className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                  {set.weight_kg ? `${Math.round(set.weight_kg)}kg` : '—'}
+                  {isPR && <span className="text-base" title="Personal Record">🏆</span>}
+                </span>
+                <span className="font-medium text-gray-900 dark:text-white">{set.reps}</span>
+                {/* Feature 2: copy last set button */}
+                {isLast ? (
+                  <button
+                    onClick={() => {
+                      setWeight(set.weight_kg?.toString() ?? '');
+                      setReps(set.reps.toString());
+                    }}
+                    title="Copy this set"
+                    className="text-xs text-blue-400 hover:text-blue-500 transition-colors font-semibold px-1"
+                  >
+                    ↺
+                  </button>
+                ) : <span />}
+                <div className="flex items-center gap-1 justify-end">
+                  {/* Feature 3: edit button */}
+                  <button onClick={() => handleEditStart(set)}
+                    className="text-gray-300 hover:text-blue-400 transition-colors text-xs">✏️</button>
+                  <button onClick={() => onDeleteSet(set.id, exercise.exercise_id)}
+                    className="text-gray-300 hover:text-red-400 transition-colors text-xs">✕</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-2">
-        <input type="number" placeholder="kg" value={weight} onChange={e => setWeight(e.target.value)}
-          min="0" step="0.5"
-          className="w-20 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-        <input type="number" placeholder="reps" value={reps} onChange={e => setReps(e.target.value)} min="1"
-          className="w-20 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-        <button onClick={handleLog} disabled={logging || !reps}
-          className="flex-1 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all">
-          {logging ? '...' : '+ Log Set'}
-        </button>
+      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 space-y-2">
+        <div className="flex items-center gap-2">
+          <input type="number" placeholder="kg" value={weight} onChange={e => setWeight(e.target.value)}
+            min="0" step="0.5"
+            className="w-20 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input type="number" placeholder="reps" value={reps} onChange={e => setReps(e.target.value)} min="1"
+            className="w-20 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <button onClick={handleLog} disabled={logging || !reps}
+            className="flex-1 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all">
+            {logging ? '...' : '+ Log Set'}
+          </button>
+        </div>
+        {/* Feature 8: overload nudge */}
+        {showNudge && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+            Last session: {prevBest!.weight_kg}kg × {prevBest!.reps} — try adding 2.5kg!
+          </p>
+        )}
       </div>
     </div>
   );
@@ -414,7 +667,6 @@ function WorkoutNameModal({ onStart, onStartFromTemplate, onCancel }: {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
-        {/* Tabs */}
         <div className="flex border-b border-gray-100 dark:border-gray-700">
           {(['new', 'template'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
@@ -598,7 +850,6 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
           );
         })}
 
-        {/* Inline create — shown when search has text and no results */}
         {search.trim() && filtered.length === 0 && (
           <div className="p-4 space-y-3">
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center">No exercise found for "<strong>{search}</strong>"</p>

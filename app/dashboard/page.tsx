@@ -30,6 +30,11 @@ interface StreakData {
   longestStreak: number;
 }
 
+interface MuscleData {
+  muscle_group: string;
+  sessions: number;
+}
+
 // Circular SVG progress ring component
 function CircularProgress({ value, max, size = 96, strokeWidth = 8 }: { value: number; max: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2;
@@ -98,6 +103,7 @@ function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [goal, setGoal] = useState<GoalData | null>(null);
   const [streak, setStreak] = useState<StreakData | null>(null);
+  const [weeklyMuscles, setWeeklyMuscles] = useState<MuscleData[]>([]);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [monthsData, setMonthsData] = useState<Record<number, MonthActivity>>({});
   const [loadingMonths, setLoadingMonths] = useState(false);
@@ -116,6 +122,7 @@ function Dashboard() {
     api.get('/goals').then(r => setGoal(r.data)).catch(() => {});
     api.get('/progress/streaks').then(r => setStreak(r.data)).catch(() => {});
     api.get('/workouts/active').then(r => setActiveWorkout(r.data.workout ?? null)).catch(() => setActiveWorkout(null));
+    api.get('/progress/weekly-muscles').then(r => setWeeklyMuscles(r.data.muscles)).catch(() => {});
   }, []);
 
   const handleStartWorkout = async (name: string) => {
@@ -228,6 +235,29 @@ function Dashboard() {
         {/* Weekly Goal */}
         <WeeklyGoalCard goal={goal} onSave={g => setGoal(prev => prev ? { ...prev, weeklyTarget: g } : { weeklyTarget: g, thisWeek: 0, achieved: false })} />
       </div>
+
+      {/* Feature 9: Weekly Training Split */}
+      {weeklyMuscles.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5">
+          <h3 className="font-bold text-gray-900 dark:text-white text-base mb-4">💪 This Week's Training Split</h3>
+          <div className="space-y-2.5">
+            {weeklyMuscles.map(m => (
+              <div key={m.muscle_group} className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 w-28 flex-shrink-0">{m.muscle_group}</span>
+                <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (m.sessions / Math.max(...weeklyMuscles.map(x => x.sessions))) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 w-16 text-right flex-shrink-0">
+                  {m.sessions} {m.sessions === 1 ? 'session' : 'sessions'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* All-time stats */}
       <div className="grid grid-cols-2 gap-4">

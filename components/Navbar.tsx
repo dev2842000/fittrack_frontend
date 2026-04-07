@@ -8,8 +8,8 @@ import NotificationBell from '@/components/NotificationBell';
 const links = [
   { href: '/dashboard', label: 'Home', icon: '🏠' },
   { href: '/workout', label: 'History', icon: '🏋️' },
+  { href: '/templates', label: 'Templates', icon: '📋' },
   { href: '/progress', label: 'Progress', icon: '📈' },
-  { href: '/exercises', label: 'Library', icon: '📚' },
   { href: '/profile', label: 'Profile', icon: '👤' },
 ];
 

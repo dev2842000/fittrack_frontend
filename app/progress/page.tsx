@@ -37,6 +37,101 @@ export default function ProgressPage() {
   );
 }
 
+// Feature 7: 1RM Calculator
+const RM_PERCENTAGES = [
+  { pct: 100, label: '1RM', reps: '1 rep' },
+  { pct: 95, label: '95%', reps: '2–3 reps' },
+  { pct: 90, label: '90%', reps: '4–5 reps' },
+  { pct: 85, label: '85%', reps: '6 reps' },
+  { pct: 80, label: '80%', reps: '8 reps' },
+  { pct: 75, label: '75%', reps: '10 reps' },
+  { pct: 70, label: '70%', reps: '12 reps' },
+];
+
+function OneRMCalculator() {
+  const [calcWeight, setCalcWeight] = useState('');
+  const [calcReps, setCalcReps] = useState('');
+
+  const oneRM = calcWeight && calcReps && parseInt(calcReps) >= 1
+    ? parseFloat(calcWeight) * (1 + parseInt(calcReps) / 30)
+    : null;
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-gradient-to-r from-purple-500 to-violet-600 px-5 py-4">
+        <h2 className="font-bold text-white text-base">🧮 1RM Calculator</h2>
+        <p className="text-purple-100 text-xs mt-0.5">Epley formula: weight × (1 + reps/30)</p>
+      </div>
+      <div className="p-5 space-y-4">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1.5">Weight (kg)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="e.g. 100"
+              value={calcWeight}
+              onChange={e => setCalcWeight(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1.5">Reps</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              placeholder="e.g. 5"
+              value={calcReps}
+              onChange={e => setCalcReps(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-sm"
+            />
+          </div>
+        </div>
+
+        {oneRM !== null ? (
+          <>
+            <div className="bg-gradient-to-r from-purple-500/10 to-violet-600/10 border border-purple-200 dark:border-purple-700 rounded-xl px-4 py-3 text-center">
+              <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Estimated 1RM</p>
+              <p className="text-3xl font-extrabold text-purple-600 dark:text-purple-400 mt-0.5">
+                {Math.round(oneRM)}<span className="text-base font-semibold text-gray-400 ml-1">kg</span>
+              </p>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-700/50">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">%</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Weight</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rep Range</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {RM_PERCENTAGES.map(row => (
+                    <tr key={row.pct} className={`transition-colors ${row.pct === 100 ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
+                      <td className={`px-3 py-2.5 font-bold ${row.pct === 100 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-700 dark:text-gray-300'}`}>{row.label}</td>
+                      <td className={`px-3 py-2.5 font-semibold ${row.pct === 100 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-900 dark:text-white'}`}>
+                        {Math.round(oneRM * row.pct / 100)} kg
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-500 dark:text-gray-400">{row.reps}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            <span className="text-4xl block mb-2">🧮</span>
+            <p className="text-sm font-medium">Enter weight and reps to calculate your 1RM</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ProgressDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -112,7 +207,6 @@ function ProgressDashboard() {
 
       {/* Exercise progress */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-        {/* Gradient header bar */}
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
           <h2 className="font-bold text-white text-base">Exercise Progress</h2>
           <select
@@ -147,7 +241,6 @@ function ProgressDashboard() {
             </div>
           ) : (
             <>
-              {/* PR badge */}
               {pr.weight && (
                 <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 border border-yellow-400/40 text-yellow-700 dark:text-yellow-400 px-4 py-2 rounded-xl text-sm font-bold">
                   🏆 PR: {pr.weight}kg {pr.reps ? `× ${pr.reps} reps` : ''}
@@ -299,6 +392,10 @@ function ProgressDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Feature 7: 1RM Calculator */}
+      <OneRMCalculator />
+
     </div>
   );
 }

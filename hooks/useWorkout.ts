@@ -86,6 +86,22 @@ export function useWorkout() {
       }
       return { ...prev, exercises };
     });
+
+    return newSet;
+  };
+
+  const editSet = async (setId: number, exerciseId: number, weightKg: number | null, reps: number) => {
+    if (!workout) return;
+    const res = await api.patch(`/workouts/${workout.id}/sets/${setId}`, { weight_kg: weightKg, reps });
+    const updated: WorkoutSet = res.data.set;
+    setWorkout(prev => {
+      if (!prev) return prev;
+      const exercises = prev.exercises.map(ex => {
+        if (ex.exercise_id !== exerciseId) return ex;
+        return { ...ex, sets: ex.sets.map(s => s.id === setId ? updated : s) };
+      });
+      return { ...prev, exercises };
+    });
   };
 
   const deleteSet = async (setId: number, exerciseId: number) => {
@@ -104,20 +120,26 @@ export function useWorkout() {
   const completeWorkout = async () => {
     if (!workout) return;
     await api.patch(`/workouts/${workout.id}/complete`);
-    const completedId = workout.id;
+    const snapshot = { ...workout };
     setWorkout(null);
-    return completedId;
+    return { id: snapshot.id, snapshot };
   };
 
   const discardWorkout = async () => {
     if (!workout) return;
-    await api.delete(`/workouts/${workout.id}`);
-    setWorkout(null);
+    try {
+      await api.delete(`/workouts/${workout.id}`);
+      setWorkout(null);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to discard workout. Please try again.';
+      alert(msg);
+      throw err;
+    }
   };
 
   const mergePreviousBest = (extra: Record<number, PreviousBest>) => {
     setPreviousBest(prev => ({ ...extra, ...prev })); // existing data wins
   };
 
-  return { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch: fetchActive, mergePreviousBest };
+  return { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, editSet, deleteSet, completeWorkout, discardWorkout, refetch: fetchActive, mergePreviousBest };
 }
