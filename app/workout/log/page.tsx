@@ -582,11 +582,11 @@ function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onE
                   <input type="number" placeholder="reps" value={editReps} onChange={e => setEditReps(e.target.value)} min="1"
                     className="px-2 py-1 text-sm border border-green-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full" />
                   <button onClick={() => handleEditSave(set.id)} disabled={saving}
-                    className="text-xs text-green-500 font-bold hover:text-green-600 transition-colors px-1">
-                    {saving ? '...' : '✓'}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-lg font-bold">
+                    {saving ? '…' : '✓'}
                   </button>
                   <button onClick={() => setEditingSetId(null)}
-                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-1">
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-lg">
                     ✕
                   </button>
                 </div>
@@ -609,17 +609,20 @@ function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onE
                       setReps(set.reps.toString());
                     }}
                     title="Copy this set"
-                    className="text-xs text-blue-400 hover:text-blue-500 transition-colors font-semibold px-1"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-base"
                   >
                     ↺
                   </button>
                 ) : <span />}
                 <div className="flex items-center gap-1 justify-end">
-                  {/* Feature 3: edit button */}
-                  <button onClick={() => handleEditStart(set)}
-                    className="text-gray-300 hover:text-blue-400 transition-colors text-xs">✏️</button>
-                  <button onClick={() => onDeleteSet(set.id, exercise.exercise_id)}
-                    className="text-gray-300 hover:text-red-400 transition-colors text-xs">✕</button>
+                  <button onClick={() => handleEditStart(set)} title="Edit"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-base">
+                    ✏️
+                  </button>
+                  <button onClick={() => onDeleteSet(set.id, exercise.exercise_id)} title="Delete"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-base">
+                    🗑️
+                  </button>
                 </div>
               </div>
             );
