@@ -34,14 +34,17 @@ export function useWorkout() {
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [previousBest, setPreviousBest] = useState<Record<number, PreviousBest>>({});
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   const fetchActive = useCallback(async () => {
+    setFetchError(false);
     try {
       const res = await api.get('/workouts/active');
       setWorkout(res.data.workout);
       setPreviousBest(res.data.previousBest || {});
     } catch (err) {
       console.error(err);
+      setFetchError(true); // don't treat network error as "no workout"
     } finally {
       setLoading(false);
     }
@@ -112,5 +115,5 @@ export function useWorkout() {
     setWorkout(null);
   };
 
-  return { workout, loading, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout };
+  return { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch: fetchActive };
 }

@@ -32,7 +32,7 @@ interface Template {
 }
 
 function WorkoutTracker() {
-  const { workout, loading, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout } = useWorkout();
+  const { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, deleteSet, completeWorkout, discardWorkout, refetch } = useWorkout();
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -46,8 +46,8 @@ function WorkoutTracker() {
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!loading && !workout) setShowNameModal(true);
-  }, [loading, workout]);
+    if (!loading && !fetchError && !workout) setShowNameModal(true);
+  }, [loading, fetchError, workout]);
 
   // Rest timer countdown
   useEffect(() => {
@@ -112,8 +112,27 @@ function WorkoutTracker() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
         <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-gray-400">Loading your workout...</p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 px-4 text-center">
+        <span className="text-4xl">⚠️</span>
+        <div>
+          <p className="font-bold text-gray-900 dark:text-white">Could not reach the server</p>
+          <p className="text-sm text-gray-400 mt-1">Your workout is safe — the server may be waking up. Try again in a few seconds.</p>
+        </div>
+        <button
+          onClick={refetch}
+          className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all"
+        >
+          Retry
+        </button>
       </div>
     );
   }
