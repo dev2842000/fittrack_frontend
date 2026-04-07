@@ -564,64 +564,67 @@ function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onE
       </div>
 
       {sets.length > 0 && (
-        <div className="px-4 py-2 space-y-1">
-          <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] text-xs text-gray-400 font-medium mb-1 gap-2">
-            <span>Set</span><span>Weight</span><span>Reps</span><span></span><span></span>
+        <div className="px-3 py-2 space-y-1">
+          {/* Header */}
+          <div className="flex items-center text-xs text-gray-400 font-medium pb-1 border-b border-gray-100 dark:border-gray-700">
+            <span className="w-8 text-center">#</span>
+            <span className="flex-1 text-center">Weight</span>
+            <span className="flex-1 text-center">Reps</span>
+            <span className="w-28" />
           </div>
+
           {sets.map((set, idx) => {
             const isLast = idx === sets.length - 1;
             const isPR = prSetIds.has(set.id);
 
             if (editingSetId === set.id) {
               return (
-                <div key={set.id} className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center">
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">{set.set_number}</span>
+                <div key={set.id} className="flex items-center gap-1.5 py-1">
+                  <span className="w-8 text-center text-sm text-gray-400 flex-shrink-0">{set.set_number}</span>
                   <input type="number" placeholder="kg" value={editWeight} onChange={e => setEditWeight(e.target.value)}
                     min="0" step="0.5"
-                    className="px-2 py-1 text-sm border border-green-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full" />
+                    className="flex-1 px-2 py-1.5 text-sm border-2 border-green-400 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none" />
                   <input type="number" placeholder="reps" value={editReps} onChange={e => setEditReps(e.target.value)} min="1"
-                    className="px-2 py-1 text-sm border border-green-400 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full" />
-                  <button onClick={() => handleEditSave(set.id)} disabled={saving}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-lg font-bold">
-                    {saving ? '…' : '✓'}
-                  </button>
-                  <button onClick={() => setEditingSetId(null)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-lg">
-                    ✕
-                  </button>
+                    className="flex-1 px-2 py-1.5 text-sm border-2 border-green-400 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center focus:outline-none" />
+                  <div className="flex gap-1 flex-shrink-0 w-28 justify-end">
+                    <button onClick={() => handleEditSave(set.id)} disabled={saving}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors">
+                      <SaveIcon /> {saving ? '…' : 'Save'}
+                    </button>
+                    <button onClick={() => setEditingSetId(null)}
+                      className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                      <XIcon />
+                    </button>
+                  </div>
                 </div>
               );
             }
 
             return (
-              <div key={set.id} className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 text-sm items-center">
-                <span className="text-gray-500 dark:text-gray-400">{set.set_number}</span>
-                <span className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                  {set.weight_kg ? `${Math.round(set.weight_kg)}kg` : '—'}
-                  {isPR && <span className="text-base" title="Personal Record">🏆</span>}
+              <div key={set.id} className="flex items-center py-1 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <span className="w-8 text-center text-sm text-gray-400 flex-shrink-0 font-medium">{set.set_number}</span>
+                <span className="flex-1 text-center text-sm font-semibold text-gray-900 dark:text-white">
+                  {set.weight_kg ? `${Math.round(set.weight_kg * 10) / 10}kg` : '—'}
+                  {isPR && <span className="ml-1 text-xs text-yellow-500 font-bold">PR</span>}
                 </span>
-                <span className="font-medium text-gray-900 dark:text-white">{set.reps}</span>
-                {/* Feature 2: copy last set button */}
-                {isLast ? (
-                  <button
-                    onClick={() => {
-                      setWeight(set.weight_kg?.toString() ?? '');
-                      setReps(set.reps.toString());
-                    }}
-                    title="Copy this set"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-base"
-                  >
-                    ↺
+                <span className="flex-1 text-center text-sm font-semibold text-gray-900 dark:text-white">{set.reps}</span>
+                <div className="flex items-center gap-0.5 w-28 justify-end flex-shrink-0">
+                  {isLast && (
+                    <button
+                      onClick={() => { setWeight(set.weight_kg?.toString() ?? ''); setReps(set.reps.toString()); }}
+                      title="Repeat this set"
+                      className="w-9 h-9 flex items-center justify-center rounded-xl text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:scale-90 transition-all"
+                    >
+                      <RepeatIcon />
+                    </button>
+                  )}
+                  <button onClick={() => handleEditStart(set)} title="Edit set"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:scale-90 transition-all">
+                    <PencilIcon />
                   </button>
-                ) : <span />}
-                <div className="flex items-center gap-1 justify-end">
-                  <button onClick={() => handleEditStart(set)} title="Edit"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-base">
-                    ✏️
-                  </button>
-                  <button onClick={() => onDeleteSet(set.id, exercise.exercise_id)} title="Delete"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-base">
-                    🗑️
+                  <button onClick={() => onDeleteSet(set.id, exercise.exercise_id)} title="Delete set"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-90 transition-all">
+                    <TrashIcon />
                   </button>
                 </div>
               </div>
@@ -884,6 +887,55 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
         )}
       </div>
     </div>
+  );
+}
+
+// SVG icon components — consistent size, no emoji rendering issues
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
+function RepeatIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
+
+function SaveIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
   );
 }
 
