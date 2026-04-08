@@ -146,6 +146,8 @@ function WorkoutTracker() {
 
   // Feature 4: track PR set IDs across the whole tracker
   const [prSetIds, setPrSetIds] = useState<Set<number>>(new Set());
+  const [notes, setNotes] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
 
   // Feature 1: elapsed timer display
   const [, forceTickDisplay] = useState(0);
@@ -200,6 +202,26 @@ function WorkoutTracker() {
 
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const notifTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleRestNotification = (seconds: number) => {
+    if (notifTimeoutRef.current) clearTimeout(notifTimeoutRef.current);
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    const fire = () => {
+      if (Notification.permission === 'granted') {
+        new Notification('Rest done! 💪', { body: 'Time for your next set.', icon: '/icon-192.png', silent: false });
+      }
+    };
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+          notifTimeoutRef.current = setTimeout(fire, seconds * 1000);
+        }
+      });
+    } else {
+      notifTimeoutRef.current = setTimeout(fire, seconds * 1000);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !fetchError && !workout) setShowNameModal(true);
@@ -248,6 +270,8 @@ function WorkoutTracker() {
     // Feature 10: use restDuration
     setRestTimer(restDuration);
     if (restRef.current) clearInterval(restRef.current);
+    // Schedule notification when rest ends
+    scheduleRestNotification(restDuration);
   };
 
   const handleStart = async (name: string) => {
@@ -296,6 +320,9 @@ function WorkoutTracker() {
   const handleComplete = async () => {
     setCompleting(true);
     try {
+      if (notes.trim() && workout) {
+        await api.patch(`/workouts/${workout.id}/notes`, { notes: notes.trim() }).catch(() => {});
+      }
       const result = await completeWorkout();
       if (result) {
         setCompletedWorkoutId(result.id);
@@ -437,6 +464,13 @@ function WorkoutTracker() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowNotes(p => !p)}
+            title="Add notes"
+            className={`px-2.5 py-1.5 text-sm rounded-xl border transition-colors ${showNotes ? 'border-green-400 text-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
           <button onClick={() => setShowConfirmDiscard(true)}
             className="px-3 py-1.5 text-sm text-red-500 border border-red-200 dark:border-red-800 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
             Discard
@@ -447,6 +481,17 @@ function WorkoutTracker() {
           </button>
         </div>
       </div>
+
+      {/* Notes */}
+      {showNotes && (
+        <textarea
+          placeholder="Add a note about this session (energy, injuries, PRs felt, etc.)"
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={2}
+          className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none shadow-sm"
+        />
+      )}
 
       {/* Rest timer — Feature 10: duration picker */}
       {restTimer !== null && (
@@ -459,7 +504,7 @@ function WorkoutTracker() {
                 <p className="text-2xl font-extrabold text-white">{Math.floor(restTimer / 60)}:{String(restTimer % 60).padStart(2, '0')}</p>
               </div>
             </div>
-            <button onClick={() => setRestTimer(null)} className="text-xs text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-xl transition-colors">
+            <button onClick={() => { setRestTimer(null); if (notifTimeoutRef.current) clearTimeout(notifTimeoutRef.current); }} className="text-xs text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-xl transition-colors">
               Skip
             </button>
           </div>

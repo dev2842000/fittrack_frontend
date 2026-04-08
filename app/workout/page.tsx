@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import { getToken } from '@/lib/auth';
 
 interface WorkoutSummary {
   id: number;
@@ -76,8 +77,29 @@ function WorkoutHistory() {
           <div className="absolute -top-6 -right-6 w-40 h-40 rounded-full bg-white" />
         </div>
         <div className="relative">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">🏋️ Workout History</h1>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">Workout History</h1>
           <p className="text-green-100 text-sm mt-1 font-medium">All your completed sessions</p>
+          <button
+            onClick={() => {
+              const token = getToken();
+              const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+              const url = `${base}/workouts/export`;
+              fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+                .then(r => r.blob())
+                .then(blob => {
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(blob);
+                  a.download = 'fittrack-export.csv';
+                  a.click();
+                });
+            }}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-green-100 hover:text-white font-semibold transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export CSV
+          </button>
         </div>
         {loading ? (
           <div className="animate-pulse bg-white/30 rounded-xl h-10 w-32 flex-shrink-0" />

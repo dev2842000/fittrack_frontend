@@ -35,6 +35,7 @@ function TemplateList() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [starting, setStarting] = useState<number | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
 
   useEffect(() => {
     api.get('/templates')
@@ -55,6 +56,19 @@ function TemplateList() {
       }
     } finally {
       setStarting(null);
+    }
+  };
+
+  const handleDuplicate = async (templateId: number) => {
+    setDuplicatingId(templateId);
+    try {
+      await api.post(`/templates/${templateId}/duplicate`);
+      const res = await api.get('/templates');
+      setTemplates(res.data.templates);
+    } catch {
+      alert('Failed to duplicate template');
+    } finally {
+      setDuplicatingId(null);
     }
   };
 
@@ -163,6 +177,19 @@ function TemplateList() {
                     className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 disabled:opacity-50 text-white text-sm font-bold rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all"
                   >
                     {starting === t.id ? '...' : '▶ Start'}
+                  </button>
+                  <button
+                    onClick={() => router.push(`/templates/${t.id}/edit`)}
+                    className="px-4 py-2 text-sm text-blue-500 border border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDuplicate(t.id)}
+                    disabled={duplicatingId === t.id}
+                    className="px-4 py-2 text-sm text-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    {duplicatingId === t.id ? '...' : 'Copy'}
                   </button>
                   <button
                     onClick={() => handleDelete(t.id)}

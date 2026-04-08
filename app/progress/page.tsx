@@ -27,6 +27,7 @@ interface PR { exercise_name: string; muscle_group: string; max_weight: number; 
 interface BwEntry { date: string; weight_kg: number; }
 interface Measurement { date: string; chest_cm: number | null; waist_cm: number | null; hips_cm: number | null; left_arm_cm: number | null; right_arm_cm: number | null; left_thigh_cm: number | null; right_thigh_cm: number | null; }
 interface MuscleVolume { muscle_group: string; total_sets: number; }
+interface WorkoutDates { [date: string]: number; }
 
 const MUSCLE_COLORS: Record<string, string> = {
   Chest: '#22c55e', Back: '#3b82f6', Legs: '#f59e0b', Shoulders: '#8b5cf6',
@@ -243,6 +244,7 @@ function ProgressDashboard() {
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolume[]>([]);
   const [volumePeriod, setVolumePeriod] = useState<'week' | 'month'>('month');
   const [loadingVolume, setLoadingVolume] = useState(false);
+  const [workoutDates, setWorkoutDates] = useState<WorkoutDates>({});
 
   useEffect(() => {
     Promise.all([
@@ -253,6 +255,7 @@ function ProgressDashboard() {
       api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {}),
       api.get('/measurements').then(r => setMeasurements(r.data.measurements)).catch(() => {}),
       api.get('/progress/muscle-volume?period=month').then(r => setMuscleVolume(r.data.data)).catch(() => {}),
+      api.get(`/workouts/dates?year=${new Date().getFullYear()}`).then(r => setWorkoutDates(r.data.dates)).catch(() => {}),
     ]).finally(() => setLoadingData(false));
   }, []);
 
@@ -315,6 +318,9 @@ function ProgressDashboard() {
           <p className="text-green-100 text-sm mt-1 font-medium">Track your gains and personal records</p>
         </div>
       </div>
+
+      {/* Calendar Heatmap */}
+      <CalendarHeatmap dates={workoutDates} loading={loadingData} />
 
       {/* Health Metrics */}
       {loadingData ? (
@@ -617,6 +623,103 @@ function ProgressDashboard() {
       {/* Feature 7: 1RM Calculator */}
       <OneRMCalculator />
 
+    </div>
+  );
+}
+
+function CalendarHeatmap({ dates, loading }: { dates: WorkoutDates; loading: boolean }) {
+  const today = new Date();
+  const year = today.getFullYear();
+
+  // Build 52 weeks × 7 days grid starting from first Sunday of the year
+  const jan1 = new Date(year, 0, 1);
+  const startOffset = jan1.getDay(); // 0=Sun
+  const startDate = new Date(jan1);
+  startDate.setDate(1 - startOffset);
+
+  const weeks: (Date | null)[][] = [];
+  let cur = new Date(startDate);
+  while (cur.getFullYear() <= year || weeks.length < 53) {
+    const week: (Date | null)[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(cur);
+      week.push(day.getFullYear() === year ? day : null);
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+    if (cur.getFullYear() > year && weeks.length >= 52) break;
+  }
+
+  const toKey = (d: Date) => d.toISOString().split('T')[0];
+  const totalWorkouts = Object.values(dates).reduce((a, b) => a + b, 0);
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 flex items-center justify-between">
+        <div>
+          <h2 className="font-bold text-white text-base">{year} Activity</h2>
+          <p className="text-green-100 text-xs mt-0.5">{totalWorkouts} workout{totalWorkouts !== 1 ? 's' : ''} this year</p>
+        </div>
+      </div>
+      <div className="p-4 overflow-x-auto">
+        {loading ? (
+          <ProgressSkeleton className="h-24 w-full" />
+        ) : (
+          <>
+            {/* Month labels */}
+            <div className="flex gap-[3px] mb-1 ml-4">
+              {weeks.map((week, wi) => {
+                const firstDay = week.find(d => d !== null);
+                if (!firstDay) return <div key={wi} className="w-[11px]" />;
+                const isFirst = firstDay.getDate() <= 7;
+                return (
+                  <div key={wi} className="w-[11px] flex-shrink-0">
+                    {isFirst && <span className="text-[9px] text-gray-400 whitespace-nowrap absolute">{MONTHS_SHORT[firstDay.getMonth()]}</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-[3px] mt-3">
+              {/* Day labels */}
+              <div className="flex flex-col gap-[3px] mr-1">
+                {['','M','','W','','F',''].map((l, i) => (
+                  <div key={i} className="w-3 h-[11px] flex items-center">
+                    <span className="text-[9px] text-gray-400">{l}</span>
+                  </div>
+                ))}
+              </div>
+              {weeks.map((week, wi) => (
+                <div key={wi} className="flex flex-col gap-[3px]">
+                  {week.map((day, di) => {
+                    if (!day) return <div key={di} className="w-[11px] h-[11px]" />;
+                    const key = toKey(day);
+                    const count = dates[key] || 0;
+                    const isFuture = day > today;
+                    const isToday = key === toKey(today);
+                    let bg = 'bg-gray-100 dark:bg-gray-700';
+                    if (!isFuture && count > 0) bg = 'bg-green-500';
+                    return (
+                      <div
+                        key={di}
+                        title={`${key}${count > 0 ? ` · ${count} workout${count > 1 ? 's' : ''}` : ''}`}
+                        className={`w-[11px] h-[11px] rounded-[2px] ${bg} ${isToday ? 'ring-1 ring-green-400' : ''} ${isFuture ? 'opacity-30' : ''}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 mt-3 justify-end">
+              <span className="text-[10px] text-gray-400">Less</span>
+              {['bg-gray-100 dark:bg-gray-700','bg-green-200','bg-green-400','bg-green-500'].map((c, i) => (
+                <div key={i} className={`w-[11px] h-[11px] rounded-[2px] ${c}`} />
+              ))}
+              <span className="text-[10px] text-gray-400">More</span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
