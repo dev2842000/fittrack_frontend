@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { EyeIcon } from '@/components/EyeIcon';
 
 interface Profile {
@@ -30,8 +32,15 @@ export default function ProfilePage() {
 }
 
 function ProfileContent() {
+  const { logout } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   useEffect(() => {
     api.get('/profile')
@@ -80,6 +89,14 @@ function ProfileContent() {
 
       <EditProfileForm profile={profile} onSave={setProfile} />
       <ChangePasswordForm />
+
+      {/* Sign out — visible on mobile since navbar hides it */}
+      <button
+        onClick={handleLogout}
+        className="w-full py-3 rounded-2xl border-2 border-red-200 dark:border-red-800 text-red-500 font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+      >
+        Sign out
+      </button>
     </div>
   );
 }
