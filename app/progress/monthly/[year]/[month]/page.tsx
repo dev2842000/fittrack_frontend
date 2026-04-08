@@ -53,6 +53,10 @@ export default function MonthlyDetailPage() {
   );
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function MonthlyDetail() {
   const { year, month } = useParams();
   const router = useRouter();
@@ -71,8 +75,48 @@ function MonthlyDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+        {/* Gradient header skeleton */}
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/30 animate-pulse flex-shrink-0" />
+            <div className="space-y-2">
+              <div className="h-6 w-40 bg-white/30 rounded-xl animate-pulse" />
+              <div className="h-4 w-32 bg-white/30 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+        {/* Summary stat cards skeleton */}
+        <div className="grid grid-cols-2 gap-4">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+        {/* Chart card skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4">
+            <div className="h-4 w-24 bg-white/30 rounded-xl animate-pulse" />
+          </div>
+          <div className="p-5">
+            <Skeleton className="h-52 w-full" />
+          </div>
+        </div>
+        {/* Session list skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-5 py-4">
+            <div className="h-4 w-20 bg-white/30 rounded-xl animate-pulse" />
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="px-5 py-4 flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-44" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="h-5 w-5" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

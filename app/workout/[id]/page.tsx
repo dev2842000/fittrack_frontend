@@ -37,6 +37,10 @@ export default function WorkoutDetailPage() {
   );
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function WorkoutDetail() {
   const { id } = useParams();
   const router = useRouter();
@@ -52,8 +56,31 @@ function WorkoutDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        <Skeleton className="h-4 w-16" />
+        {/* Header card skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 space-y-3">
+          <Skeleton className="h-6 w-2/5" />
+          <Skeleton className="h-4 w-1/4" />
+          <div className="grid grid-cols-2 gap-4 pt-1">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        </div>
+        {/* Exercise row skeletons */}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 space-y-1.5">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-3 w-1/5" />
+            </div>
+            <div className="px-4 py-3 space-y-2">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-4/5" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

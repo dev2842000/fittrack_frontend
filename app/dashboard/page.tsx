@@ -95,6 +95,10 @@ export default function DashboardPage() {
   );
 }
 
+function DashboardSkeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function Dashboard() {
   const { user } = useAuth();
   const router = useRouter();
@@ -107,6 +111,7 @@ function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [monthsData, setMonthsData] = useState<Record<number, MonthActivity>>({});
   const [loadingMonths, setLoadingMonths] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [activeWorkout, setActiveWorkout] = useState<{ id: number; name: string | null } | null | undefined>(undefined); // undefined = not yet fetched
   const [showNameModal, setShowNameModal] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -118,11 +123,13 @@ function Dashboard() {
   );
 
   useEffect(() => {
-    api.get('/progress/summary').then(r => setSummary(r.data)).catch(() => {});
-    api.get('/goals').then(r => setGoal(r.data)).catch(() => {});
-    api.get('/progress/streaks').then(r => setStreak(r.data)).catch(() => {});
-    api.get('/workouts/active').then(r => setActiveWorkout(r.data.workout ?? null)).catch(() => setActiveWorkout(null));
-    api.get('/progress/weekly-muscles').then(r => setWeeklyMuscles(r.data.muscles)).catch(() => {});
+    Promise.all([
+      api.get('/progress/summary').then(r => setSummary(r.data)).catch(() => {}),
+      api.get('/goals').then(r => setGoal(r.data)).catch(() => {}),
+      api.get('/progress/streaks').then(r => setStreak(r.data)).catch(() => {}),
+      api.get('/workouts/active').then(r => setActiveWorkout(r.data.workout ?? null)).catch(() => setActiveWorkout(null)),
+      api.get('/progress/weekly-muscles').then(r => setWeeklyMuscles(r.data.muscles)).catch(() => {}),
+    ]).finally(() => setLoadingStats(false));
   }, []);
 
   const handleStartWorkout = async (name: string) => {
@@ -201,6 +208,34 @@ function Dashboard() {
       )}
 
       {/* Streak + Goal */}
+      {loadingStats ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Streak skeleton */}
+          <div className="bg-gray-900 dark:bg-gray-900 rounded-2xl shadow-xl p-5 flex items-center gap-5">
+            <DashboardSkeleton className="w-14 h-14 bg-gray-700 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <DashboardSkeleton className="h-3 w-28 bg-gray-700" />
+              <DashboardSkeleton className="h-10 w-16 bg-gray-700" />
+              <DashboardSkeleton className="h-3 w-24 bg-gray-700" />
+            </div>
+          </div>
+          {/* Goal skeleton */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <DashboardSkeleton className="h-5 w-28" />
+              <DashboardSkeleton className="h-5 w-12" />
+            </div>
+            <div className="flex items-center gap-5">
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0" style={{ width: 88, height: 88 }} />
+              <div className="flex-1 space-y-2">
+                <DashboardSkeleton className="h-8 w-24" />
+                <DashboardSkeleton className="h-3 w-32" />
+                <DashboardSkeleton className="h-4 w-28" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Streak — dark card */}
         <div className="bg-gray-900 dark:bg-gray-900 rounded-2xl shadow-xl p-5 flex items-center gap-5 relative overflow-hidden">
@@ -235,6 +270,7 @@ function Dashboard() {
         {/* Weekly Goal */}
         <WeeklyGoalCard goal={goal} onSave={g => setGoal(prev => prev ? { ...prev, weeklyTarget: g } : { weeklyTarget: g, thisWeek: 0, achieved: false })} />
       </div>
+      )}
 
       {/* Feature 9: Weekly Training Split */}
       {weeklyMuscles.length > 0 && (
@@ -366,7 +402,19 @@ function Dashboard() {
       </div>
 
       {/* Top lifts */}
-      {summary && summary.topLifts.length > 0 && (
+      {loadingStats ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <DashboardSkeleton className="h-5 w-24" />
+            <DashboardSkeleton className="h-4 w-16" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <DashboardSkeleton key={i} className="h-24 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      ) : summary && summary.topLifts.length > 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900 dark:text-white text-base">🏋️ Top Lifts</h3>
@@ -394,7 +442,7 @@ function Dashboard() {
             })}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Quick links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

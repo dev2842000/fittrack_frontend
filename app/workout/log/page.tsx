@@ -293,9 +293,33 @@ function WorkoutTracker() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3">
-        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Loading your workout...</p>
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {/* Workout header card skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between border-l-4 border-green-400 shadow-sm">
+          <div className="space-y-2">
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-16" />
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-5 w-32" />
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-40" />
+          </div>
+          <div className="flex gap-2">
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-9 w-20" />
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-9 w-20" />
+          </div>
+        </div>
+        {/* Exercise card skeletons */}
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5">
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-5 w-36" />
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-20" />
+              </div>
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-8 w-8" />
+            </div>
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-10 w-full" />
+            <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-10 w-full" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -322,8 +346,24 @@ function WorkoutTracker() {
     return (
       <>
         {starting && (
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+          <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between border-l-4 border-green-400 shadow-sm">
+              <div className="space-y-2">
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-16" />
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-5 w-32" />
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-40" />
+              </div>
+              <div className="flex gap-2">
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-9 w-20" />
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-9 w-20" />
+              </div>
+            </div>
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-4 space-y-3">
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-5 w-36" />
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-10 w-full" />
+              </div>
+            ))}
           </div>
         )}
         {showNameModal && (

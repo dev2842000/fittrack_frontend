@@ -216,6 +216,10 @@ function HealthMetrics({ weightKg, heightCm, age, sex }: {
   );
 }
 
+function ProgressSkeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function ProgressDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -226,14 +230,17 @@ function ProgressDashboard() {
   const [bwEntries, setBwEntries] = useState<BwEntry[]>([]);
   const [bwInput, setBwInput] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    api.get('/progress/summary').then(r => setSummary(r.data));
-    api.get('/progress/exercises').then(r => setExercises(r.data.exercises));
-    api.get('/progress/prs').then(r => setPrs(r.data.prs));
-    api.get('/progress/bodyweight').then(r => setBwEntries(r.data.entries));
-    api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {});
+    Promise.all([
+      api.get('/progress/summary').then(r => setSummary(r.data)),
+      api.get('/progress/exercises').then(r => setExercises(r.data.exercises)),
+      api.get('/progress/prs').then(r => setPrs(r.data.prs)),
+      api.get('/progress/bodyweight').then(r => setBwEntries(r.data.entries)),
+      api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {}),
+    ]).finally(() => setLoadingData(false));
   }, []);
 
   useEffect(() => {
@@ -284,7 +291,21 @@ function ProgressDashboard() {
       </div>
 
       {/* Health Metrics */}
-      {(() => {
+      {loadingData ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-4">
+            <div className="h-4 w-32 bg-white/30 rounded-xl animate-pulse" />
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <ProgressSkeleton key={i} className="h-20" />
+              ))}
+            </div>
+            <ProgressSkeleton className="h-28 w-full" />
+          </div>
+        </div>
+      ) : (() => {
         const latestWeight = bwEntries.length > 0 ? bwEntries[bwEntries.length - 1].weight_kg : null;
         return profile?.height_cm && profile?.age && latestWeight ? (
           <HealthMetrics
@@ -297,12 +318,17 @@ function ProgressDashboard() {
       })()}
 
       {/* Summary stats */}
-      {summary && (
+      {loadingData ? (
+        <div className="grid grid-cols-2 gap-4">
+          <ProgressSkeleton className="h-24" />
+          <ProgressSkeleton className="h-24" />
+        </div>
+      ) : summary ? (
         <div className="grid grid-cols-2 gap-4">
           <StatCard label="Total Workouts" value={summary.totalWorkouts} icon="💪" accent="green" />
           <StatCard label="Exercises Tracked" value={exercises.length} icon="📊" accent="blue" />
         </div>
-      )}
+      ) : null}
 
       {/* Exercise progress */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
@@ -330,9 +356,7 @@ function ProgressDashboard() {
               <p className="font-medium">Select an exercise to see your progress</p>
             </div>
           ) : loadingProgress ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-            </div>
+            <ProgressSkeleton className="h-48 w-full" />
           ) : progressData.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <span className="text-4xl block mb-3">📭</span>
@@ -392,7 +416,25 @@ function ProgressDashboard() {
             <h2 className="font-bold text-white text-base">🏆 Personal Records</h2>
           </div>
           <div className="p-5 space-y-1">
-            {prs.length === 0 ? (
+            {loadingData ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between py-2.5 px-3">
+                    <div className="flex items-center gap-3">
+                      <ProgressSkeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5">
+                        <ProgressSkeleton className="h-4 w-32" />
+                        <ProgressSkeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <ProgressSkeleton className="h-5 w-16" />
+                      <ProgressSkeleton className="h-3 w-12" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : prs.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <span className="text-3xl block mb-2">🎯</span>
                 <p className="text-sm font-medium">No PRs yet — complete some workouts!</p>
@@ -450,7 +492,9 @@ function ProgressDashboard() {
               </button>
             </form>
 
-            {bwEntries.length === 0 ? (
+            {loadingData ? (
+              <ProgressSkeleton className="h-52 w-full" />
+            ) : bwEntries.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <span className="text-3xl block mb-2">⚖️</span>
                 <p className="text-sm font-medium">No bodyweight data yet</p>

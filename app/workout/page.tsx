@@ -52,6 +52,10 @@ export default function WorkoutPage() {
   );
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function WorkoutHistory() {
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,12 +79,16 @@ function WorkoutHistory() {
           <h1 className="text-2xl font-extrabold text-white tracking-tight">🏋️ Workout History</h1>
           <p className="text-green-100 text-sm mt-1 font-medium">All your completed sessions</p>
         </div>
-        <Link
-          href="/workout/log"
-          className="relative flex-shrink-0 px-4 py-2.5 bg-white hover:bg-green-50 text-green-600 text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
-        >
-          {activeWorkout ? '▶ Resume' : '+ Start Workout'}
-        </Link>
+        {loading ? (
+          <div className="animate-pulse bg-white/30 rounded-xl h-10 w-32 flex-shrink-0" />
+        ) : (
+          <Link
+            href="/workout/log"
+            className="relative flex-shrink-0 px-4 py-2.5 bg-white hover:bg-green-50 text-green-600 text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            {activeWorkout ? '▶ Resume' : '+ Start Workout'}
+          </Link>
+        )}
       </div>
 
       {/* Active workout banner */}
@@ -108,7 +116,7 @@ function WorkoutHistory() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+            <Skeleton key={i} className="h-28" />
           ))}
         </div>
       ) : workouts.length === 0 ? (

@@ -31,6 +31,10 @@ export default function ProfilePage() {
   );
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function ProfileContent() {
   const { logout } = useAuth();
   const router = useRouter();
@@ -48,8 +52,39 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Hero card skeleton */}
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6">
+          <div className="flex items-center gap-5">
+            <div className="w-20 h-20 rounded-2xl bg-white/30 animate-pulse flex-shrink-0" />
+            <div className="space-y-2 flex-1">
+              <div className="h-6 w-2/5 bg-white/30 rounded-xl animate-pulse" />
+              <div className="h-4 w-1/3 bg-white/30 rounded-xl animate-pulse" />
+              <div className="h-3 w-1/4 bg-white/30 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+        {/* Form card skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+            <Skeleton className="h-5 w-36 bg-white/30" />
+          </div>
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-12" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
       </div>
     );
   }

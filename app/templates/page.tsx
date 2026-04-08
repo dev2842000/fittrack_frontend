@@ -25,6 +25,10 @@ export default function TemplatesPage() {
   );
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl ${className}`} />;
+}
+
 function TemplateList() {
   const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -85,7 +89,19 @@ function TemplateList() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-28 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="p-4 flex items-start justify-between gap-3">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-2/5" />
+                  <Skeleton className="h-3.5 w-1/3" />
+                  <Skeleton className="h-3.5 w-3/5 mt-1" />
+                </div>
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  <Skeleton className="h-9 w-20" />
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : templates.length === 0 ? (

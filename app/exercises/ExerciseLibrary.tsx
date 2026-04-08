@@ -123,7 +123,12 @@ export default function ExerciseLibrary({ initialExercises }: { initialExercises
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 flex items-center justify-between h-[68px]">
+              <div className="space-y-1.5">
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-4 w-28" />
+              </div>
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-full h-6 w-16" />
+            </div>
           ))}
         </div>
       ) : filteredDisplay.length === 0 ? (
