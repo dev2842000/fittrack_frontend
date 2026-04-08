@@ -27,7 +27,6 @@ interface PR { exercise_name: string; muscle_group: string; max_weight: number; 
 interface BwEntry { date: string; weight_kg: number; }
 interface Measurement { date: string; chest_cm: number | null; waist_cm: number | null; hips_cm: number | null; left_arm_cm: number | null; right_arm_cm: number | null; left_thigh_cm: number | null; right_thigh_cm: number | null; }
 interface MuscleVolume { muscle_group: string; total_sets: number; }
-interface WorkoutDates { [date: string]: number; }
 
 const MUSCLE_COLORS: Record<string, string> = {
   Chest: '#22c55e', Back: '#3b82f6', Legs: '#f59e0b', Shoulders: '#8b5cf6',
@@ -244,7 +243,6 @@ function ProgressDashboard() {
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolume[]>([]);
   const [volumePeriod, setVolumePeriod] = useState<'week' | 'month'>('month');
   const [loadingVolume, setLoadingVolume] = useState(false);
-  const [workoutDates, setWorkoutDates] = useState<WorkoutDates>({});
 
   useEffect(() => {
     Promise.all([
@@ -255,7 +253,6 @@ function ProgressDashboard() {
       api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {}),
       api.get('/measurements').then(r => setMeasurements(r.data.measurements)).catch(() => {}),
       api.get('/progress/muscle-volume?period=month').then(r => setMuscleVolume(r.data.data)).catch(() => {}),
-      api.get(`/workouts/dates?year=${new Date().getFullYear()}`).then(r => setWorkoutDates(r.data.dates)).catch(() => {}),
     ]).finally(() => setLoadingData(false));
   }, []);
 
@@ -318,9 +315,6 @@ function ProgressDashboard() {
           <p className="text-green-100 text-sm mt-1 font-medium">Track your gains and personal records</p>
         </div>
       </div>
-
-      {/* Calendar Heatmap */}
-      <CalendarHeatmap dates={workoutDates} loading={loadingData} />
 
       {/* Health Metrics */}
       {loadingData ? (
