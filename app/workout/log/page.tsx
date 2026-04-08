@@ -58,6 +58,22 @@ function WorkoutSummaryModal({
   const h = Math.floor(durationMin / 60);
   const m = durationMin % 60;
   const durationStr = h > 0 ? `${h}h ${m}m` : `${durationMin} min`;
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const exerciseList = snapshot.exercises.map(ex => {
+      const bestSet = ex.sets.reduce((best, s) => (s.weight_kg ?? 0) > (best.weight_kg ?? 0) ? s : best, ex.sets[0]);
+      return `• ${ex.exercise_name}: ${bestSet ? `${bestSet.weight_kg ?? 'BW'}kg × ${bestSet.reps}` : ex.sets.length + ' sets'}`;
+    }).join('\n');
+    const text = `Crushed my ${snapshot.name || 'workout'} on FitTrack!\n\n⏱ ${durationStr} · ${snapshot.exercises.length} exercises · ${totalSets} sets${prCount > 0 ? ` · 🏆 ${prCount} PR${prCount > 1 ? 's' : ''}` : ''}\n\n${exerciseList}\n\n📱 Track yours at fittrack-frontend-three.vercel.app`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'FitTrack Workout', text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -88,7 +104,15 @@ function WorkoutSummaryModal({
               </p>
             </div>
           )}
-          <div className="flex gap-2 pt-1">
+          <button onClick={handleShare}
+            className="w-full py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            {copied ? 'Copied to clipboard!' : 'Share workout'}
+          </button>
+          <div className="flex gap-2">
             <button onClick={onDone}
               className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               Done
@@ -806,6 +830,46 @@ function SaveTemplateModal({ defaultName, onSave, onSkip }: {
   );
 }
 
+function ExercisePickerRow({ ex, added, onAdd }: {
+  ex: any;
+  added: boolean;
+  onAdd: (id: number, name: string, muscle: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className={`${added ? 'opacity-40' : ''}`}>
+      <div className="flex items-center px-4 py-3">
+        <button
+          onClick={() => !added && onAdd(ex.id, ex.name, ex.muscle_group)}
+          className={`flex-1 text-left ${added ? 'cursor-default' : ''}`}
+        >
+          <p className="font-medium text-gray-900 dark:text-white">{ex.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{ex.muscle_group}</p>
+        </button>
+        <div className="flex items-center gap-2 ml-2">
+          {ex.instructions && (
+            <button
+              onClick={() => setExpanded(p => !p)}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-900/20 transition-colors text-xs font-bold"
+            >
+              i
+            </button>
+          )}
+          {added
+            ? <span className="text-xs text-green-500 font-medium">Added</span>
+            : <button onClick={() => onAdd(ex.id, ex.name, ex.muscle_group)} className="text-green-500 text-xl font-bold leading-none">+</button>
+          }
+        </div>
+      </div>
+      {expanded && ex.instructions && (
+        <div className="mx-4 mb-3 px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">{ex.instructions}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
   workoutExercises: WorkoutExercise[];
   localExercises: LocalExercise[];
@@ -878,14 +942,7 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
         {filtered.map(ex => {
           const added = alreadyAdded.has(ex.id);
           return (
-            <button key={ex.id} onClick={() => !added && onAdd(ex.id, ex.name, ex.muscle_group)}
-              className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${added ? 'opacity-40 cursor-default' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">{ex.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{ex.muscle_group}</p>
-              </div>
-              {added ? <span className="text-xs text-green-500 font-medium">Added</span> : <span className="text-green-500 text-lg">+</span>}
-            </button>
+            <ExercisePickerRow key={ex.id} ex={ex} added={added} onAdd={onAdd} />
           );
         })}
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Area, AreaChart,
+  ResponsiveContainer, Area, AreaChart, BarChart, Bar, Cell, LabelList,
 } from 'recharts';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
@@ -25,6 +25,13 @@ interface ProgressPoint {
 interface Exercise { id: number; name: string; muscle_group: string; }
 interface PR { exercise_name: string; muscle_group: string; max_weight: number; reps_at_max: number; }
 interface BwEntry { date: string; weight_kg: number; }
+interface Measurement { date: string; chest_cm: number | null; waist_cm: number | null; hips_cm: number | null; left_arm_cm: number | null; right_arm_cm: number | null; left_thigh_cm: number | null; right_thigh_cm: number | null; }
+interface MuscleVolume { muscle_group: string; total_sets: number; }
+
+const MUSCLE_COLORS: Record<string, string> = {
+  Chest: '#22c55e', Back: '#3b82f6', Legs: '#f59e0b', Shoulders: '#8b5cf6',
+  Arms: '#ec4899', Core: '#14b8a6', Glutes: '#f97316', Cardio: '#06b6d4', Other: '#6b7280',
+};
 
 export default function ProgressPage() {
   return (
@@ -232,6 +239,10 @@ function ProgressDashboard() {
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [muscleVolume, setMuscleVolume] = useState<MuscleVolume[]>([]);
+  const [volumePeriod, setVolumePeriod] = useState<'week' | 'month'>('month');
+  const [loadingVolume, setLoadingVolume] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -240,8 +251,23 @@ function ProgressDashboard() {
       api.get('/progress/prs').then(r => setPrs(r.data.prs)),
       api.get('/progress/bodyweight').then(r => setBwEntries(r.data.entries)),
       api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {}),
+      api.get('/measurements').then(r => setMeasurements(r.data.measurements)).catch(() => {}),
+      api.get('/progress/muscle-volume?period=month').then(r => setMuscleVolume(r.data.data)).catch(() => {}),
     ]).finally(() => setLoadingData(false));
   }, []);
+
+  const handleVolumeToggle = async (period: 'week' | 'month') => {
+    setVolumePeriod(period);
+    setLoadingVolume(true);
+    try {
+      const res = await api.get(`/progress/muscle-volume?period=${period}`);
+      setMuscleVolume(res.data.data);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingVolume(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedEx) return;
@@ -536,9 +562,187 @@ function ProgressDashboard() {
         </div>
       </div>
 
+      {/* Muscle Volume Chart */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-teal-500 to-cyan-600 px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-bold text-white text-base">Muscle Volume</h2>
+            <p className="text-teal-100 text-xs mt-0.5">Sets per muscle group</p>
+          </div>
+          <div className="flex gap-1.5">
+            {(['week', 'month'] as const).map(p => (
+              <button key={p} onClick={() => handleVolumeToggle(p)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${volumePeriod === p ? 'bg-white text-teal-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                {p === 'week' ? 'This Week' : 'Last 30d'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="p-5">
+          {loadingData || loadingVolume ? (
+            <ProgressSkeleton className="h-48 w-full" />
+          ) : muscleVolume.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <p className="text-3xl mb-2">💪</p>
+              <p className="text-sm font-medium">No workout data for this period</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={muscleVolume} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="muscle_group" tick={{ fontSize: 11 }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} label={{ value: 'sets', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#9ca3af' } }} />
+                <Tooltip
+                  formatter={(v: number) => [`${v} sets`, 'Volume']}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', fontSize: '12px' }}
+                />
+                <Bar dataKey="total_sets" radius={[6, 6, 0, 0]}>
+                  {muscleVolume.map(entry => (
+                    <Cell key={entry.muscle_group} fill={MUSCLE_COLORS[entry.muscle_group] || '#6b7280'} />
+                  ))}
+                  <LabelList dataKey="total_sets" position="top" style={{ fontSize: 11, fill: '#6b7280', fontWeight: 600 }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Measurements */}
+      <MeasurementsSection measurements={measurements} onAdd={m => setMeasurements(prev => {
+        const filtered = prev.filter(e => e.date !== m.date);
+        return [...filtered, m].sort((a, b) => a.date.localeCompare(b.date));
+      })} loading={loadingData} fmt={fmt} />
+
       {/* Feature 7: 1RM Calculator */}
       <OneRMCalculator />
 
+    </div>
+  );
+}
+
+const MEASURE_FIELDS: { key: keyof Omit<Measurement, 'date'>; label: string }[] = [
+  { key: 'chest_cm', label: 'Chest' },
+  { key: 'waist_cm', label: 'Waist' },
+  { key: 'hips_cm', label: 'Hips' },
+  { key: 'left_arm_cm', label: 'L. Arm' },
+  { key: 'right_arm_cm', label: 'R. Arm' },
+  { key: 'left_thigh_cm', label: 'L. Thigh' },
+  { key: 'right_thigh_cm', label: 'R. Thigh' },
+];
+
+function MeasurementsSection({ measurements, onAdd, loading, fmt }: {
+  measurements: Measurement[];
+  onAdd: (m: Measurement) => void;
+  loading: boolean;
+  fmt: (d: string) => string;
+}) {
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const latest = measurements[measurements.length - 1] ?? null;
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const body: any = {};
+    MEASURE_FIELDS.forEach(f => { if (form[f.key]) body[f.key] = parseFloat(form[f.key]); });
+    if (Object.keys(body).length === 0) return;
+    setSaving(true);
+    try {
+      const res = await api.post('/measurements', body);
+      onAdd(res.data.measurement);
+      setForm({});
+      setShowForm(false);
+    } catch {} finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-4 flex items-center justify-between">
+        <div>
+          <h2 className="font-bold text-white text-base">Body Measurements</h2>
+          <p className="text-pink-100 text-xs mt-0.5">Track size changes over time (cm)</p>
+        </div>
+        <button onClick={() => setShowForm(p => !p)}
+          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-xl transition-colors">
+          {showForm ? 'Cancel' : '+ Log'}
+        </button>
+      </div>
+      <div className="p-5 space-y-4">
+        {showForm && (
+          <form onSubmit={handleSave} className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {MEASURE_FIELDS.map(f => (
+                <div key={f.key} className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{f.label}</label>
+                  <input
+                    type="number" step="0.1" min="0" placeholder="cm"
+                    value={form[f.key] ?? ''}
+                    onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
+                  />
+                </div>
+              ))}
+            </div>
+            <button type="submit" disabled={saving}
+              className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-bold rounded-xl shadow-md shadow-pink-500/25 disabled:opacity-50 transition-all hover:scale-[1.02]">
+              {saving ? 'Saving...' : 'Save measurements'}
+            </button>
+          </form>
+        )}
+
+        {loading ? (
+          <ProgressSkeleton className="h-24 w-full" />
+        ) : measurements.length === 0 ? (
+          <div className="text-center py-6 text-gray-400">
+            <p className="text-3xl mb-2">📏</p>
+            <p className="text-sm font-medium">No measurements yet — log your first!</p>
+          </div>
+        ) : (
+          <>
+            {/* Latest snapshot */}
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Latest — {fmt(latest.date)}</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {MEASURE_FIELDS.map(f => latest[f.key] != null && (
+                  <div key={f.key} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2.5 text-center">
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase">{f.label}</p>
+                    <p className="text-base font-extrabold text-gray-900 dark:text-white">{latest[f.key]}</p>
+                    <p className="text-[10px] text-gray-400">cm</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Waist trend chart if enough data */}
+            {measurements.filter(m => m.waist_cm != null).length >= 2 && (
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Waist trend</p>
+                <ResponsiveContainer width="100%" height={140}>
+                  <AreaChart data={measurements.filter(m => m.waist_cm != null)} margin={{ top: 5, right: 10, left: 5, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="waistGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="date" tickFormatter={fmt} tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} unit="cm" domain={['auto', 'auto']} width={50} />
+                    <Tooltip formatter={(v: number) => [`${v}cm`, 'Waist']} labelFormatter={fmt}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', fontSize: '11px' }} />
+                    <Area type="monotone" dataKey="waist_cm" stroke="#ec4899" strokeWidth={2.5}
+                      fill="url(#waistGradient)"
+                      dot={{ r: 3, fill: '#ec4899', stroke: '#fff', strokeWidth: 1.5 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -74,7 +74,7 @@ function VerifyOtpForm() {
     try {
       const res = await authApi.verifyOtp({ email, otp });
       saveToken(res.data.token);
-      router.push('/dashboard');
+      router.push('/onboarding');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Verification failed');
       setDigits(['', '', '', '', '', '']);
