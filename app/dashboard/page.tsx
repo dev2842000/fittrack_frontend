@@ -7,6 +7,7 @@ import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
+import { getCached, setCached } from '@/lib/cache';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -123,12 +124,24 @@ function Dashboard() {
   );
 
   useEffect(() => {
+    // Load from cache instantly
+    const cs = getCached<Summary>('dash_summary');
+    const cg = getCached<GoalData>('dash_goal');
+    const cst = getCached<StreakData>('dash_streak');
+    const cm = getCached<MuscleData[]>('dash_muscles');
+    if (cs) setSummary(cs);
+    if (cg) setGoal(cg);
+    if (cst) setStreak(cst);
+    if (cm) setWeeklyMuscles(cm);
+    if (cs && cg && cst) setLoadingStats(false);
+
+    // Fetch fresh in background
     Promise.all([
-      api.get('/progress/summary').then(r => setSummary(r.data)).catch(() => {}),
-      api.get('/goals').then(r => setGoal(r.data)).catch(() => {}),
-      api.get('/progress/streaks').then(r => setStreak(r.data)).catch(() => {}),
+      api.get('/progress/summary').then(r => { setSummary(r.data); setCached('dash_summary', r.data); }).catch(() => {}),
+      api.get('/goals').then(r => { setGoal(r.data); setCached('dash_goal', r.data); }).catch(() => {}),
+      api.get('/progress/streaks').then(r => { setStreak(r.data); setCached('dash_streak', r.data); }).catch(() => {}),
       api.get('/workouts/active').then(r => setActiveWorkout(r.data.workout ?? null)).catch(() => setActiveWorkout(null)),
-      api.get('/progress/weekly-muscles').then(r => setWeeklyMuscles(r.data.muscles)).catch(() => {}),
+      api.get('/progress/weekly-muscles').then(r => { setWeeklyMuscles(r.data.muscles); setCached('dash_muscles', r.data.muscles); }).catch(() => {}),
     ]).finally(() => setLoadingStats(false));
   }, []);
 

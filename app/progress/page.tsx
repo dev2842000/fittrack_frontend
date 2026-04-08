@@ -8,6 +8,7 @@ import {
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import { getCached, setCached } from '@/lib/cache';
 
 interface Summary {
   totalWorkouts: number;
@@ -245,14 +246,28 @@ function ProgressDashboard() {
   const [loadingVolume, setLoadingVolume] = useState(false);
 
   useEffect(() => {
+    // Load from cache instantly
+    const cs = getCached<Summary>('prog_summary');
+    const ce = getCached<Exercise[]>('prog_exercises');
+    const cp = getCached<PR[]>('prog_prs');
+    const cb = getCached<BwEntry[]>('prog_bodyweight');
+    const cv = getCached<MuscleVolume[]>('prog_muscle_volume');
+    if (cs) setSummary(cs);
+    if (ce) setExercises(ce);
+    if (cp) setPrs(cp);
+    if (cb) setBwEntries(cb);
+    if (cv) setMuscleVolume(cv);
+    if (cs && ce && cp) setLoadingData(false);
+
+    // Fetch fresh in background
     Promise.all([
-      api.get('/progress/summary').then(r => setSummary(r.data)),
-      api.get('/progress/exercises').then(r => setExercises(r.data.exercises)),
-      api.get('/progress/prs').then(r => setPrs(r.data.prs)),
-      api.get('/progress/bodyweight').then(r => setBwEntries(r.data.entries)),
+      api.get('/progress/summary').then(r => { setSummary(r.data); setCached('prog_summary', r.data); }),
+      api.get('/progress/exercises').then(r => { setExercises(r.data.exercises); setCached('prog_exercises', r.data.exercises); }),
+      api.get('/progress/prs').then(r => { setPrs(r.data.prs); setCached('prog_prs', r.data.prs); }),
+      api.get('/progress/bodyweight').then(r => { setBwEntries(r.data.entries); setCached('prog_bodyweight', r.data.entries); }),
       api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {}),
       api.get('/measurements').then(r => setMeasurements(r.data.measurements)).catch(() => {}),
-      api.get('/progress/muscle-volume?period=month').then(r => setMuscleVolume(r.data.data)).catch(() => {}),
+      api.get('/progress/muscle-volume?period=month').then(r => { setMuscleVolume(r.data.data); setCached('prog_muscle_volume', r.data.data); }).catch(() => {}),
     ]).finally(() => setLoadingData(false));
   }, []);
 

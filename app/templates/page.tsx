@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import { getCached, setCached } from '@/lib/cache';
 
 interface Template {
   id: number;
@@ -38,9 +39,12 @@ function TemplateList() {
   const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
 
   useEffect(() => {
-    api.get('/templates')
-      .then(r => setTemplates(r.data.templates))
-      .finally(() => setLoading(false));
+    const cached = getCached<Template[]>('templates_list');
+    if (cached) { setTemplates(cached); setLoading(false); }
+    api.get('/templates').then(r => {
+      setTemplates(r.data.templates);
+      setCached('templates_list', r.data.templates);
+    }).finally(() => setLoading(false));
   }, []);
 
   const handleStart = async (templateId: number) => {
