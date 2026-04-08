@@ -132,6 +132,90 @@ function OneRMCalculator() {
   );
 }
 
+interface Profile { age: number | null; sex: string | null; height_cm: number | null; }
+
+const ACTIVITY_LEVELS = [
+  { label: 'Sedentary', desc: 'Little or no exercise', multiplier: 1.2 },
+  { label: 'Light', desc: '1–3 days/week', multiplier: 1.375 },
+  { label: 'Moderate', desc: '3–5 days/week', multiplier: 1.55 },
+  { label: 'Active', desc: '6–7 days/week', multiplier: 1.725 },
+  { label: 'Very Active', desc: 'Hard training daily', multiplier: 1.9 },
+];
+
+function HealthMetrics({ weightKg, heightCm, age, sex }: {
+  weightKg: number; heightCm: number; age: number; sex: string | null;
+}) {
+  const [activityIdx, setActivityIdx] = useState(1);
+  const isMale = sex === 'male';
+  const heightM = heightCm / 100;
+  const bmi = weightKg / (heightM * heightM);
+  const bmr = isMale
+    ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
+    : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  const tdee = Math.round(bmr * ACTIVITY_LEVELS[activityIdx].multiplier);
+  const bfPercent = isMale
+    ? (1.20 * bmi) + (0.23 * age) - 16.2
+    : (1.20 * bmi) + (0.23 * age) - 5.4;
+  const bmiCategory =
+    bmi < 18.5 ? { label: 'Underweight', color: 'text-blue-500' } :
+    bmi < 25   ? { label: 'Normal', color: 'text-green-500' } :
+    bmi < 30   ? { label: 'Overweight', color: 'text-yellow-500' } :
+                 { label: 'Obese', color: 'text-red-500' };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-4">
+        <h2 className="font-bold text-white text-base">Health Metrics</h2>
+        <p className="text-blue-100 text-xs mt-0.5">Based on your latest weight · {weightKg}kg</p>
+      </div>
+      <div className="p-5 space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'BMI', value: bmi.toFixed(1), sub: bmiCategory.label, subColor: bmiCategory.color },
+            { label: 'BMR', value: `${Math.round(bmr)}`, sub: 'kcal at rest', subColor: 'text-gray-400' },
+            { label: 'Body Fat', value: `${Math.max(0, bfPercent).toFixed(1)}%`, sub: 'estimated', subColor: 'text-gray-400' },
+          ].map(m => (
+            <div key={m.label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 text-center">
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-1">{m.label}</p>
+              <p className="text-xl font-extrabold text-gray-900 dark:text-white">{m.value}</p>
+              <p className={`text-[11px] font-medium mt-0.5 ${m.subColor}`}>{m.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wide">Maintenance Calories</p>
+              <p className="text-3xl font-extrabold text-green-600 dark:text-green-400 mt-0.5">
+                {tdee.toLocaleString()} <span className="text-sm font-semibold text-gray-400">kcal/day</span>
+              </p>
+            </div>
+            <div className="text-right text-xs space-y-1">
+              <p className="text-gray-400">Cut <span className="font-bold text-red-400">{(tdee - 500).toLocaleString()}</span></p>
+              <p className="text-gray-400">Bulk <span className="font-bold text-blue-400">{(tdee + 300).toLocaleString()}</span></p>
+            </div>
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {ACTIVITY_LEVELS.map((a, i) => (
+              <button key={a.label} onClick={() => setActivityIdx(i)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  activityIdx === i
+                    ? 'bg-green-500 text-white shadow-sm'
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
+                }`}>
+                {a.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400">{ACTIVITY_LEVELS[activityIdx].desc}</p>
+        </div>
+        <p className="text-[11px] text-gray-400 text-center">Estimates · update weight regularly for accuracy</p>
+      </div>
+    </div>
+  );
+}
+
 function ProgressDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -142,12 +226,14 @@ function ProgressDashboard() {
   const [bwEntries, setBwEntries] = useState<BwEntry[]>([]);
   const [bwInput, setBwInput] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     api.get('/progress/summary').then(r => setSummary(r.data));
     api.get('/progress/exercises').then(r => setExercises(r.data.exercises));
     api.get('/progress/prs').then(r => setPrs(r.data.prs));
     api.get('/progress/bodyweight').then(r => setBwEntries(r.data.entries));
+    api.get('/profile').then(r => setProfile(r.data.profile)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -196,6 +282,19 @@ function ProgressDashboard() {
           <p className="text-green-100 text-sm mt-1 font-medium">Track your gains and personal records</p>
         </div>
       </div>
+
+      {/* Health Metrics */}
+      {(() => {
+        const latestWeight = bwEntries.length > 0 ? bwEntries[bwEntries.length - 1].weight_kg : null;
+        return profile?.height_cm && profile?.age && latestWeight ? (
+          <HealthMetrics
+            weightKg={latestWeight}
+            heightCm={profile.height_cm}
+            age={profile.age}
+            sex={profile.sex}
+          />
+        ) : null;
+      })()}
 
       {/* Summary stats */}
       {summary && (
