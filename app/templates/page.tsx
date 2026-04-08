@@ -107,7 +107,7 @@ function CreateTemplateModal({ onClose, onCreate }: {
   const SUGGESTIONS = ['Chest Day', 'Back Day', 'Leg Day', 'Push Day', 'Pull Day', 'Shoulder Day', 'Arms Day', 'Full Body'];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white dark:bg-gray-900">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-bold text-lg">←</button>
