@@ -2,7 +2,7 @@
   "name": "FitTrack — Workout Tracker",
   "short_name": "FitTrack",
   "description": "Track your workouts, log sets and reps, monitor personal records, and hit your weekly fitness goals.",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#22c55e",
