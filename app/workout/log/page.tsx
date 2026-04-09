@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import { useWorkout, WorkoutExercise, WorkoutSet, PreviousBest } from '@/hooks/useWorkout';
@@ -129,13 +129,12 @@ function WorkoutSummaryModal({
 }
 
 function WorkoutTracker() {
-  const { workout, loading, fetchError, previousBest, startWorkout, startFromTemplate, logSet, editSet, deleteSet, completeWorkout, discardWorkout, refetch, mergePreviousBest } = useWorkout();
+  const { workout, loading, fetchError, previousBest, logSet, editSet, deleteSet, completeWorkout, discardWorkout, refetch, mergePreviousBest } = useWorkout();
   const router = useRouter();
-  const [starting, setStarting] = useState(false);
+  const searchParams = useSearchParams();
   const [completing, setCompleting] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
-  const [showNameModal, setShowNameModal] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [completedWorkoutId, setCompletedWorkoutId] = useState<number | null>(null);
@@ -224,8 +223,32 @@ function WorkoutTracker() {
   };
 
   useEffect(() => {
-    if (!loading && !fetchError && !workout) setShowNameModal(true);
-  }, [loading, fetchError, workout]);
+    if (!loading && !fetchError && !workout && !showSummary && !showSaveTemplate) {
+      router.replace('/workout/start');
+    }
+  }, [loading, fetchError, workout, showSummary, showSaveTemplate, router]);
+
+  // Load template exercises when started from /workout/start?template=ID
+  useEffect(() => {
+    if (!workout) return;
+    const templateId = searchParams.get('template');
+    if (!templateId) return;
+    // Remove param from URL so refreshing doesn't re-load
+    router.replace('/workout/log', { scroll: false });
+    api.get(`/templates/${templateId}/exercises`).then(res => {
+      const exercises: LocalExercise[] = (res.data.exercises || []).map((e: any) => ({
+        exercise_id: e.exercise_id,
+        exercise_name: e.exercise_name,
+        muscle_group: e.muscle_group,
+      }));
+      if (exercises.length === 0) return;
+      setLocalExercises(exercises);
+      const ids = exercises.map(e => e.exercise_id);
+      api.get(`/workouts/previous-best?exerciseIds=${ids.join(',')}`).then(r => {
+        mergePreviousBest(r.data.previousBest);
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [workout?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rest timer countdown
   useEffect(() => {
@@ -272,49 +295,6 @@ function WorkoutTracker() {
     if (restRef.current) clearInterval(restRef.current);
     // Schedule notification when rest ends
     scheduleRestNotification(restDuration);
-  };
-
-  const handleStart = async (name: string) => {
-    setShowNameModal(false);
-    setStarting(true);
-    try {
-      await startWorkout(name.trim() || undefined);
-    } catch (err: any) {
-      if (err.response?.status === 409) {
-        await refetch();
-      }
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  const handleStartFromTemplate = async (templateId: number) => {
-    setShowNameModal(false);
-    setStarting(true);
-    try {
-      let templateExercises: LocalExercise[] = [];
-      try {
-        ({ templateExercises } = await startFromTemplate(templateId));
-      } catch (err: any) {
-        if (err.response?.status === 409) {
-          await refetch();
-          return;
-        }
-        throw err;
-      }
-      const exs: LocalExercise[] = templateExercises.map((e: LocalExercise) => ({
-        exercise_id: e.exercise_id,
-        exercise_name: e.exercise_name,
-        muscle_group: e.muscle_group,
-      }));
-      setLocalExercises(exs);
-      const ids = exs.map(e => e.exercise_id);
-      if (ids.length > 0) {
-        api.get(`/workouts/previous-best?exerciseIds=${ids.join(',')}`).then(res => {
-          mergePreviousBest(res.data.previousBest);
-        }).catch(() => {});
-      }
-    } finally { setStarting(false); }
   };
 
   const handleComplete = async () => {
@@ -396,34 +376,6 @@ function WorkoutTracker() {
   if (!workout) {
     return (
       <>
-        {starting && (
-          <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between border-l-4 border-green-400 shadow-sm">
-              <div className="space-y-2">
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-16" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-5 w-32" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-3 w-40" />
-              </div>
-              <div className="flex gap-2">
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-9 w-20" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-9 w-20" />
-              </div>
-            </div>
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-4 space-y-3">
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-5 w-36" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-xl h-10 w-full" />
-              </div>
-            ))}
-          </div>
-        )}
-        {showNameModal && (
-          <WorkoutNameModal
-            onStart={handleStart}
-            onStartFromTemplate={handleStartFromTemplate}
-            onCancel={() => router.replace('/workout')}
-          />
-        )}
         {showSummary && completedSnapshot && (
           <WorkoutSummaryModal
             snapshot={{ name: completedWorkoutName, started_at: completedStartedAt, exercises: completedSnapshot }}
@@ -758,89 +710,6 @@ function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onE
   );
 }
 
-function WorkoutNameModal({ onStart, onStartFromTemplate, onCancel }: {
-  onStart: (name: string) => void;
-  onStartFromTemplate: (id: number) => void;
-  onCancel: () => void;
-}) {
-  const [tab, setTab] = useState<'new' | 'template'>('new');
-  const [name, setName] = useState('');
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const suggestions = ['Chest Day', 'Back Day', 'Leg Day', 'Push Day', 'Pull Day', 'Shoulder Day', 'Arms Day', 'Full Body'];
-
-  useEffect(() => {
-    api.get('/templates').then(r => setTemplates(r.data.templates)).catch(() => {});
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex border-b border-gray-100 dark:border-gray-700">
-          {(['new', 'template'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-3.5 text-sm font-bold transition-colors ${tab === t
-                ? 'text-green-500 border-b-2 border-green-500'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
-              {t === 'new' ? '✏️ New Workout' : '📋 From Template'}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-5 space-y-4">
-          {tab === 'new' ? (
-            <>
-              <input autoFocus type="text" placeholder="e.g. Chest Day, Pull Day..."
-                value={name} onChange={e => setName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && onStart(name)}
-                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map(s => (
-                  <button key={s} onClick={() => setName(s)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${name === s
-                      ? 'bg-green-500 text-white border-green-500'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-green-400 hover:text-green-500'}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold">Cancel</button>
-                <button onClick={() => onStart(name)}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-green-500/25">
-                  {name.trim() ? '▶ Start' : '▶ Start (unnamed)'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              {templates.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <p className="text-3xl mb-2">📋</p>
-                  <p className="text-sm font-medium">No templates yet</p>
-                  <p className="text-xs mt-1">Finish a workout and save it as a template</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {templates.map(t => (
-                    <button key={t.id} onClick={() => onStartFromTemplate(t.id)}
-                      className="w-full text-left p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all group">
-                      <p className="font-bold text-gray-900 dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400">{t.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {t.exercise_count} exercises · {t.exercise_names.slice(0, 3).join(', ')}{t.exercise_names.length > 3 ? '...' : ''}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button onClick={onCancel} className="w-full py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold">Cancel</button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SaveTemplateModal({ defaultName, onSave, onSkip }: {
   defaultName: { name: string | null } | null;
   onSave: (name: string) => Promise<void>;
@@ -933,7 +802,6 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
   useEffect(() => {
     api.get('/exercises/muscle-groups').then(res => {
       setMuscleGroups(res.data.muscleGroups);
-      setNewMuscle(res.data.muscleGroups[0] || '');
     });
     api.get('/exercises').then(res => setExercises(res.data.exercises));
   }, []);
@@ -950,12 +818,13 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
   ]);
 
   const handleCreate = async () => {
-    if (!newName.trim() || !newMuscle) return;
+    if (!newName.trim() || !newMuscle.trim()) return;
     setCreating(true);
     try {
-      const res = await api.post('/exercises', { name: newName.trim(), muscle_group: newMuscle });
+      const res = await api.post('/exercises', { name: newName.trim(), muscle_group: newMuscle.trim() });
       const ex = res.data.exercise;
       setExercises(prev => [...prev, ex]);
+      setMuscleGroups(prev => prev.includes(ex.muscle_group) ? prev : [...prev, ex.muscle_group].sort());
       onAdd(ex.id, ex.name, ex.muscle_group);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to create exercise');
@@ -1005,10 +874,17 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
                 <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
                   placeholder="Exercise name"
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500" />
-                <select value={newMuscle} onChange={e => setNewMuscle(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
-                  {muscleGroups.map(g => <option key={g}>{g}</option>)}
-                </select>
+                <input
+                  type="text"
+                  list="workout-category-options"
+                  value={newMuscle}
+                  onChange={e => setNewMuscle(e.target.value)}
+                  placeholder="Pick existing or type a new one…"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <datalist id="workout-category-options">
+                  {muscleGroups.map(g => <option key={g} value={g} />)}
+                </datalist>
                 <div className="flex gap-2">
                   <button onClick={() => setShowCreate(false)} className="flex-1 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-xl text-sm">Cancel</button>
                   <button onClick={handleCreate} disabled={creating || !newName.trim()}

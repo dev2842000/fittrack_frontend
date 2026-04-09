@@ -43,6 +43,10 @@ function EditTemplateContent() {
   const [search, setSearch] = useState('');
   const [activeGroup, setActiveGroup] = useState('All');
   const [loadingExercises, setLoadingExercises] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newExName, setNewExName] = useState('');
+  const [newExMuscle, setNewExMuscle] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -99,6 +103,23 @@ function EditTemplateContent() {
       setError(err.response?.data?.error || 'Failed to save template');
       setSaving(false);
     }
+  };
+
+  const handleCreateExercise = async () => {
+    if (!newExName.trim() || !newExMuscle.trim()) return;
+    setCreating(true);
+    try {
+      const res = await api.post('/exercises', { name: newExName.trim(), muscle_group: newExMuscle.trim() });
+      const ex: Exercise = res.data.exercise;
+      setAllExercises(prev => [...prev, ex]);
+      setMuscleGroups(prev => prev.includes(ex.muscle_group) ? prev : [...prev, ex.muscle_group].sort());
+      setSelected(prev => [...prev, ex]);
+      setShowCreate(false);
+      setNewExName('');
+      setNewExMuscle('');
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to create exercise');
+    } finally { setCreating(false); }
   };
 
   if (loadingTemplate) {
@@ -194,6 +215,42 @@ function EditTemplateContent() {
         <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-80 overflow-y-auto">
           {loadingExercises ? (
             <div className="p-4 space-y-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-11 w-full" />)}</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-4 space-y-3">
+              <p className="text-sm text-gray-400 text-center">No exercises found{search ? ` for "${search}"` : ''}</p>
+              {!showCreate ? (
+                <button
+                  onClick={() => { setShowCreate(true); setNewExName(search); }}
+                  className="w-full py-2.5 border-2 border-dashed border-green-400 text-green-500 font-bold rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-sm">
+                  + Create new exercise
+                </button>
+              ) : (
+                <div className="space-y-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">New Exercise</p>
+                  <input type="text" value={newExName} onChange={e => setNewExName(e.target.value)}
+                    placeholder="Exercise name"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500" />
+                  <input
+                    type="text"
+                    list="template-edit-category"
+                    value={newExMuscle}
+                    onChange={e => setNewExMuscle(e.target.value)}
+                    placeholder="Category (pick existing or type new)"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                  <datalist id="template-edit-category">
+                    {muscleGroups.map(g => <option key={g} value={g} />)}
+                  </datalist>
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowCreate(false)} className="flex-1 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-xl text-sm">Cancel</button>
+                    <button onClick={handleCreateExercise} disabled={creating || !newExName.trim() || !newExMuscle.trim()}
+                      className="flex-1 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-colors">
+                      {creating ? 'Creating...' : 'Create & Add'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : filtered.map(ex => {
             const isSelected = selectedIds.has(ex.id);
             return (

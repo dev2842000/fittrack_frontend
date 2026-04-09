@@ -105,7 +105,7 @@ function WorkoutHistory() {
           <div className="animate-pulse bg-white/30 rounded-xl h-10 w-32 flex-shrink-0" />
         ) : (
           <Link
-            href="/workout/log"
+            href={activeWorkout ? '/workout/log' : '/workout/start'}
             className="relative flex-shrink-0 px-4 py-2.5 bg-white hover:bg-green-50 text-green-600 text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
           >
             {activeWorkout ? '▶ Resume' : '+ Start Workout'}
@@ -149,7 +149,7 @@ function WorkoutHistory() {
             Your completed sessions will show up here
           </p>
           <Link
-            href="/workout/log"
+            href="/workout/start"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 transition-all duration-200"
           >
             Start your first workout →

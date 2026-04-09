@@ -61,6 +61,9 @@ export default function ExerciseLibrary({ initialExercises }: { initialExercises
 
   const handleAdded = (exercise: Exercise) => {
     setExercises(prev => [...prev, exercise]);
+    setMuscleGroups(prev =>
+      prev.includes(exercise.muscle_group) ? prev : [...prev, exercise.muscle_group].sort()
+    );
     setShowModal(false);
   };
 
@@ -169,16 +172,14 @@ function AddExerciseModal({ muscleGroups, onAdd, onClose }: {
   onClose: () => void;
 }) {
   const [name, setName] = useState('');
-  const [muscleGroup, setMuscleGroup] = useState(muscleGroups[0] || '');
-  const [customGroup, setCustomGroup] = useState('');
-  const [useCustomGroup, setUseCustomGroup] = useState(false);
+  const [muscleGroup, setMuscleGroup] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const group = useCustomGroup ? customGroup.trim() : muscleGroup;
-    if (!name.trim() || !group) { setError('Name and muscle group are required'); return; }
+    const group = muscleGroup.trim();
+    if (!name.trim() || !group) { setError('Name and category are required'); return; }
     setError('');
     setSubmitting(true);
     try {
@@ -204,19 +205,20 @@ function AddExerciseModal({ muscleGroups, onAdd, onClose }: {
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Muscle group</label>
-            {!useCustomGroup ? (
-              <select value={muscleGroup} onChange={e => setMuscleGroup(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
-                {muscleGroups.map(g => <option key={g}>{g}</option>)}
-              </select>
-            ) : (
-              <input type="text" value={customGroup} onChange={e => setCustomGroup(e.target.value)} placeholder="e.g. Forearms"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-            )}
-            <button type="button" onClick={() => setUseCustomGroup(p => !p)} className="text-xs text-green-500 hover:underline mt-1">
-              {useCustomGroup ? '← Pick from list' : '+ New muscle group'}
-            </button>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+            <input
+              type="text"
+              list="category-options"
+              required
+              value={muscleGroup}
+              onChange={e => setMuscleGroup(e.target.value)}
+              placeholder="Pick existing or type a new one…"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            <datalist id="category-options">
+              {muscleGroups.map(g => <option key={g} value={g} />)}
+            </datalist>
+            <p className="text-xs text-gray-400 mt-1">e.g. Cardio, Yoga, Warmup — type anything to create a new category</p>
           </div>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
