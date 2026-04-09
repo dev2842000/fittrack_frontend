@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationBell from '@/components/NotificationBell';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { bg } from '@/lib/theme';
 
 function SunIcon() {
   return (
@@ -100,7 +101,7 @@ export default function Navbar() {
   return (
     <>
       {/* Top bar */}
-      <nav className="sticky top-0 z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm">
+      <nav className={`sticky top-0 z-40 backdrop-blur-md ${bg.nav} border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm`}>
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
             <Link

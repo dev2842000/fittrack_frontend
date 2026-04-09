@@ -17,5 +17,32 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
 }
+
+/* ── Landing page utilities ──────────────────────────────────────────────── */
+.ft-display { font-family: var(--font-display), sans-serif; letter-spacing: 0.05em; }
+.ft-body    { font-family: var(--font-body), sans-serif; }
+
+.ft-grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ft-marquee { animation: marquee 24s linear infinite; }
+
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+.ft-blink { animation: blink 2s ease-in-out infinite; }
+
+@keyframes ft-fade-up { from { opacity:0; transform:translateY(40px); } to { opacity:1; transform:translateY(0); } }
+.ft-hero-1 { animation: ft-fade-up 0.8s ease 0.10s both; }
+.ft-hero-2 { animation: ft-fade-up 0.8s ease 0.25s both; }
+.ft-hero-3 { animation: ft-fade-up 0.8s ease 0.40s both; }
+.ft-hero-4 { animation: ft-fade-up 0.8s ease 0.55s both; }
+.ft-hero-5 { animation: ft-fade-up 0.8s ease 0.70s both; }

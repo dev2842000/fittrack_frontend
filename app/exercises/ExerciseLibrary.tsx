@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
+import { banner, btn, input } from '@/lib/theme';
 
 interface Exercise {
   id: number;
@@ -80,7 +81,7 @@ export default function ExerciseLibrary({ initialExercises }: { initialExercises
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
-      <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl shadow-green-500/20 p-6 flex items-center justify-between relative overflow-hidden">
+      <div className={`${banner} p-6 flex items-center justify-between`}>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute -top-6 -right-6 w-40 h-40 rounded-full bg-white" />
         </div>
@@ -102,7 +103,7 @@ export default function ExerciseLibrary({ initialExercises }: { initialExercises
         placeholder="Search exercises..."
         value={search}
         onChange={e => setSearch(e.target.value)}
-        className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+        className={input.md}
       />
 
       {/* Muscle group filter */}
@@ -111,11 +112,7 @@ export default function ExerciseLibrary({ initialExercises }: { initialExercises
           <button
             key={group}
             onClick={() => setActiveGroup(group)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              activeGroup === group
-                ? 'bg-green-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-400'
-            }`}
+            className={`${btn.chip} ${activeGroup === group ? btn.chipActive : btn.chipInactive}`}
           >
             {group}
           </button>
@@ -221,8 +218,8 @@ function AddExerciseModal({ muscleGroups, onAdd, onClose }: {
             <p className="text-xs text-gray-400 mt-1">e.g. Cardio, Yoga, Warmup — type anything to create a new category</p>
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
-            <button type="submit" disabled={submitting} className="flex-1 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors">
+            <button type="button" onClick={onClose} className={`${btn.secondary} flex-1 py-2 text-sm`}>Cancel</button>
+            <button type="submit" disabled={submitting} className={`${btn.primary} flex-1 py-2 text-sm`}>
               {submitting ? 'Adding...' : 'Add exercise'}
             </button>
           </div>

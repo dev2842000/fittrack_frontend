@@ -6,6 +6,7 @@ import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import { useWorkout, WorkoutExercise, WorkoutSet, PreviousBest } from '@/hooks/useWorkout';
 import api from '@/lib/api';
+import { card, btn, input, brand } from '@/lib/theme';
 
 export default function WorkoutLogPage() {
   return (
@@ -77,8 +78,8 @@ function WorkoutSummaryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5 text-center">
+      <div className={`${card.modal} w-full max-w-sm overflow-hidden`}>
+        <div className={`${brand.gradient} px-6 py-5 text-center`}>
           <p className="text-4xl mb-1">🎉</p>
           <h2 className="text-xl font-extrabold text-white">Workout Complete!</h2>
           <p className="text-green-100 text-sm mt-0.5">{snapshot.name || 'Great session'}</p>
@@ -114,11 +115,11 @@ function WorkoutSummaryModal({
           </button>
           <div className="flex gap-2">
             <button onClick={onDone}
-              className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              className={`${btn.secondary} flex-1 py-2.5 text-sm font-semibold`}>
               Done
             </button>
             <button onClick={onSaveTemplate}
-              className="flex-1 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-green-500/25">
+              className={`${btn.primary} flex-1 py-2.5 text-sm`}>
               Save as Template?
             </button>
           </div>
@@ -365,7 +366,7 @@ function WorkoutTracker() {
         </div>
         <button
           onClick={refetch}
-          className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all"
+          className={`${btn.primary} px-6 py-2.5`}
         >
           Retry
         </button>
@@ -428,7 +429,7 @@ function WorkoutTracker() {
             Discard
           </button>
           <button onClick={handleComplete} disabled={completing || totalSets === 0}
-            className="px-4 py-1.5 text-sm bg-gradient-to-r from-green-500 to-emerald-600 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md hover:scale-105 active:scale-95">
+            className={`${btn.primary} px-4 py-1.5 text-sm`}>
             {completing ? 'Finishing...' : 'Finish ✓'}
           </button>
         </div>
@@ -695,7 +696,7 @@ function ExerciseCard({ exercise, prevBest, prSetIds, onLogSet, onDeleteSet, onE
           <input type="number" placeholder="reps" value={reps} onChange={e => setReps(e.target.value)} min="1"
             className="w-20 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
           <button onClick={handleLog} disabled={logging || !reps}
-            className="flex-1 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all">
+            className={`${btn.primary} flex-1 py-1.5 text-sm`}>
             {logging ? '...' : '+ Log Set'}
           </button>
         </div>
@@ -727,15 +728,15 @@ function SaveTemplateModal({ defaultName, onSave, onSkip }: {
         </div>
         <input type="text" placeholder="Template name e.g. Push Day"
           value={name} onChange={e => setName(e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={input.md} />
         <div className="flex gap-2">
-          <button onClick={onSkip} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={onSkip} className={`${btn.secondary} flex-1 py-2.5 text-sm font-semibold`}>
             Skip
           </button>
           <button
             onClick={async () => { setSaving(true); await onSave(name); setSaving(false); }}
             disabled={saving || !name.trim()}
-            className="flex-1 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-lg shadow-green-500/25">
+            className={`${btn.primary} flex-1 py-2.5 text-sm`}>
             {saving ? 'Saving...' : 'Save template'}
           </button>
         </div>
@@ -841,11 +842,11 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 space-y-2">
         <input autoFocus type="text" placeholder="Search exercises..."
           value={search} onChange={e => { setSearch(e.target.value); setShowCreate(false); }}
-          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className={input.sm} />
         <div className="flex gap-2 overflow-x-auto pb-1">
           {['All', ...muscleGroups].map(g => (
             <button key={g} onClick={() => setActiveGroup(g)}
-              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeGroup === g ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+              className={`flex-shrink-0 ${btn.chip} text-xs ${activeGroup === g ? btn.chipActive : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
               {g}
             </button>
           ))}
@@ -886,9 +887,9 @@ function ExercisePicker({ onClose, onAdd, workoutExercises, localExercises }: {
                   {muscleGroups.map(g => <option key={g} value={g} />)}
                 </datalist>
                 <div className="flex gap-2">
-                  <button onClick={() => setShowCreate(false)} className="flex-1 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-xl text-sm">Cancel</button>
+                  <button onClick={() => setShowCreate(false)} className={`${btn.secondary} flex-1 py-2 text-sm`}>Cancel</button>
                   <button onClick={handleCreate} disabled={creating || !newName.trim()}
-                    className="flex-1 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-colors">
+                    className={`${btn.primary} flex-1 py-2 text-sm`}>
                     {creating ? 'Creating...' : 'Create & Add'}
                   </button>
                 </div>

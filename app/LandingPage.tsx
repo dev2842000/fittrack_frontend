@@ -2,282 +2,293 @@
 
 import { useEffect, useRef, ReactNode } from 'react';
 import Link from 'next/link';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
-/* ─── Scroll-reveal wrapper ─── */
-function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
+function Reveal({ children, delay = 0, className = '' }: {
+  children: ReactNode; delay?: number; className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.style.opacity = '1';
-          el.style.transform = 'translateY(0)';
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15 }
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { el.style.opacity = '1'; el.style.transform = 'none'; io.disconnect(); } },
+      { threshold: 0.1 }
     );
-    observer.observe(el);
-    return () => observer.disconnect();
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
-
   return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: 0,
-        transform: 'translateY(28px)',
-        transition: `opacity 0.55s ease ${delay}ms, transform 0.55s ease ${delay}ms`,
-      }}
-    >
+    <div ref={ref} className={className}
+      style={{ opacity: 0, transform: 'translateY(30px)', transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms` }}>
       {children}
     </div>
   );
 }
 
-/* ─── Feature card data ─── */
 const features = [
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 20V10M12 20V4M6 20v-6" />
-      </svg>
-    ),
-    title: 'Track Every Set',
-    desc: 'Log weight, reps and sets in real-time. Previous bests auto-filled so you always know what to beat.',
-    color: 'text-green-500 bg-green-50 dark:bg-green-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/>
-      </svg>
-    ),
-    title: 'Workout Templates',
-    desc: 'Save your favourite routines as templates. Start Push Day in one tap — no setup, no friction.',
-    color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-    ),
-    title: 'Progress Charts',
-    desc: 'See your strength curve over time for every exercise. Spot plateaus and breaking points instantly.',
-    color: 'text-purple-500 bg-purple-50 dark:bg-purple-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="8" r="6"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/>
-      </svg>
-    ),
-    title: 'Personal Records',
-    desc: 'PRs detected automatically mid-workout. 🏆 badge appears the moment you lift heavier than ever.',
-    color: 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
-    title: 'Rest Timer',
-    desc: 'Built-in configurable rest timer (60s–3m) starts automatically after each set. Never over-rest again.',
-    color: 'text-orange-500 bg-orange-50 dark:bg-orange-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      </svg>
-    ),
-    title: 'Health Metrics',
-    desc: 'BMI, BMR, maintenance calories and estimated body fat — all calculated from your own logged data.',
-    color: 'text-red-500 bg-red-50 dark:bg-red-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
-      </svg>
-    ),
-    title: 'Streak Tracking',
-    desc: 'Your workout streak updates after every session. Hit milestones and get notified to keep the fire going.',
-    color: 'text-orange-500 bg-orange-50 dark:bg-orange-900/20',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
-    title: 'Weekly Goals',
-    desc: 'Set a weekly workout target. Track your progress through the week and get notified when you hit it.',
-    color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20',
-  },
+  { n: '01', title: 'Track Every Set', desc: 'Log weight, reps and sets in real-time. Previous bests auto-filled so you always know what to beat.' },
+  { n: '02', title: 'Workout Templates', desc: 'Save your favourite routines. Start Push Day in one tap — no setup, no friction.' },
+  { n: '03', title: 'Progress Charts', desc: 'See your strength curve over time for every exercise. Spot plateaus and breaking points instantly.' },
+  { n: '04', title: 'Auto-Detected PRs', desc: '🏆 badge appears the moment you lift heavier than ever. Mid-workout, real-time.' },
+  { n: '05', title: 'Rest Timer', desc: 'Configurable rest timer (60s–3m) starts automatically after each set. Never over-rest.' },
+  { n: '06', title: 'Health Metrics', desc: 'BMI, BMR, maintenance calories and body fat — calculated from your own logged data.' },
+  { n: '07', title: 'Streak Tracking', desc: 'Workout streak updates after every session. Hit milestones and keep the fire going.' },
+  { n: '08', title: 'Weekly Goals', desc: 'Set a weekly workout target. Track progress through the week and get notified.' },
 ];
 
 const steps = [
-  { step: '01', title: 'Create your account', desc: 'Sign up free. Set your age, height and weekly goal.' },
-  { step: '02', title: 'Log your first workout', desc: 'Pick exercises, log sets with weight & reps, and start tracking.' },
-  { step: '03', title: 'Watch yourself improve', desc: 'Charts, PRs, streaks and health metrics update automatically.' },
+  { n: '01', title: 'Create your account', desc: 'Sign up free. Set your age, height and weekly goal. Takes 30 seconds.' },
+  { n: '02', title: 'Log your first workout', desc: 'Pick exercises from 50+ library or create custom. Log sets with weight & reps.' },
+  { n: '03', title: 'Watch yourself improve', desc: 'Charts, PRs, streaks and health metrics update automatically after every session.' },
 ];
 
-export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white overflow-x-hidden">
+const marqueeItems = ['Track Sets', 'Hit PRs', 'Build Streaks', 'Beat Yourself', 'Log Progress', 'Get Stronger', 'Stay Consistent', 'No Excuses'];
 
-      {/* ── Nav ── */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
-          <span className="text-lg font-extrabold bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent tracking-tight">
-            FitTrack
-          </span>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-              Sign in
-            </Link>
-            <Link href="/register" className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 active:scale-95 transition-all">
-              Get started
-            </Link>
+export default function LandingPage() {
+  const { isDark, toggle, mounted } = useDarkMode();
+
+  return (
+    <>
+
+      <div className="ft-grain ft-body min-h-screen bg-gray-50 dark:bg-[#070707] text-gray-900 dark:text-white overflow-x-hidden">
+
+        {/* ── Nav ── */}
+        <header className="fixed top-0 inset-x-0 z-50 border-b border-gray-200 dark:border-white/[0.06] bg-gray-50/95 dark:bg-[#070707]/95 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+            <span className="ft-display text-2xl text-green-500 dark:text-[#00ff88]">FITTRACK</span>
+            <div className="flex items-center gap-4">
+              {mounted && (
+                <button
+                  onClick={toggle}
+                  title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 dark:text-white/40 dark:hover:text-white transition-colors"
+                >
+                  {isDark ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  )}
+                </button>
+              )}
+              <Link href="/login" className="text-sm font-medium text-gray-400 hover:text-gray-900 dark:text-white/35 dark:hover:text-white transition-colors">
+                Sign in
+              </Link>
+              <Link href="/register"
+                className="px-5 py-2 bg-green-500 dark:bg-[#00ff88] text-white dark:text-black text-sm font-bold uppercase tracking-wider hover:bg-green-600 dark:hover:bg-white dark:hover:text-black transition-colors">
+                Get started
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* ── Hero ── */}
+        <section className="min-h-screen flex flex-col justify-end pb-16 pt-28 px-6 relative overflow-hidden">
+          {/* Grid background — subtle in both modes */}
+          <div className="absolute inset-0 opacity-40 dark:opacity-100"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)',
+              backgroundSize: '80px 80px',
+            }} />
+          <div className="absolute inset-0 hidden dark:block"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+              backgroundSize: '80px 80px',
+            }} />
+          {/* Green glow */}
+          <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full bg-green-400/10 dark:bg-[#00ff88]/5 blur-[120px] pointer-events-none" />
+
+          {/* Corner meta */}
+          <div className="absolute top-20 right-6 md:right-12 hidden md:flex flex-col items-end gap-3 text-gray-300 dark:text-white/20 text-[10px] font-mono uppercase tracking-widest ft-hero-5">
+            <span className="text-green-400 dark:text-[#00ff88]/50">● Live</span>
+            <span className="w-px h-12 bg-gray-200 dark:bg-white/10 self-center" />
+            <span>100% Free</span>
+          </div>
+
+          <div className="max-w-6xl mx-auto w-full relative">
+            {/* Badge */}
+            <div className="ft-hero-1 inline-flex items-center gap-2 mb-8 border border-green-300/60 dark:border-[#00ff88]/25 px-4 py-1.5 text-green-600 dark:text-[#00ff88] text-[11px] font-semibold uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-[#00ff88] ft-blink" />
+              Free to use · No credit card required
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-12 lg:gap-20 items-end">
+              <div>
+                <h1 className="ft-display ft-hero-2 text-[clamp(64px,12vw,160px)] leading-[0.88] text-gray-900 dark:text-white">
+                  TRAIN<br />
+                  SMARTER.<br />
+                  <span className="text-green-500 dark:text-[#00ff88]">LIFT</span><br />
+                  HARDER.
+                </h1>
+                <p className="ft-hero-3 mt-8 text-gray-500 dark:text-white/45 text-lg max-w-md leading-relaxed font-light">
+                  The gym tracker built for people who take training seriously. Log sets, hit PRs, build streaks — all in one place.
+                </p>
+                <div className="ft-hero-4 mt-10 flex flex-wrap gap-4 items-center">
+                  <Link href="/register"
+                    className="px-8 py-4 bg-green-500 dark:bg-[#00ff88] text-white dark:text-black font-bold uppercase tracking-widest text-sm hover:bg-green-600 dark:hover:bg-white dark:hover:text-black transition-colors">
+                    Start tracking free →
+                  </Link>
+                  <Link href="/login"
+                    className="px-8 py-4 border border-gray-300 dark:border-white/15 text-gray-500 dark:text-white/50 font-medium uppercase tracking-widest text-sm hover:border-gray-500 hover:text-gray-900 dark:hover:border-white/40 dark:hover:text-white transition-colors">
+                    Sign in
+                  </Link>
+                </div>
+              </div>
+
+              {/* Vertical stat column */}
+              <div className="ft-hero-5 hidden lg:flex flex-col gap-8 border-l border-gray-200 dark:border-white/[0.08] pl-10 pb-1">
+                {[
+                  { value: '50+', label: 'Exercises' },
+                  { value: 'PRs', label: 'Auto-detected' },
+                  { value: '∞', label: 'Workouts free' },
+                  { value: '0', label: 'Ads or upsells' },
+                ].map(s => (
+                  <div key={s.label}>
+                    <div className="ft-display text-[42px] text-green-500 dark:text-[#00ff88] leading-none">{s.value}</div>
+                    <div className="text-gray-400 dark:text-white/25 text-[10px] uppercase tracking-widest mt-1">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom rule */}
+            <div className="ft-hero-5 mt-16 flex items-center gap-6">
+              <div className="h-px bg-gray-200 dark:bg-white/[0.08] flex-1" />
+              <span className="text-gray-300 dark:text-white/15 text-[10px] uppercase tracking-widest">Scroll to explore</span>
+              <div className="h-px bg-gray-200 dark:bg-white/[0.08] w-12" />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Marquee ── */}
+        <div className="border-y border-gray-200 dark:border-white/[0.06] py-3.5 overflow-hidden bg-green-50 dark:bg-[#00ff88]/[0.03]">
+          <div className="ft-marquee flex gap-0 whitespace-nowrap w-max">
+            {[0, 1].map(i => (
+              <div key={i} className="flex items-center">
+                {marqueeItems.map(t => (
+                  <span key={t} className="ft-display text-lg text-gray-300 dark:text-white/15 uppercase px-8">
+                    {t}<span className="text-green-400 dark:text-[#00ff88]/40 ml-8">✦</span>
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
-      </header>
 
-      {/* ── Hero ── */}
-      <section className="pt-32 pb-20 px-5 text-center max-w-3xl mx-auto">
+        {/* ── Features ── */}
+        <section className="py-24 px-6">
+          <div className="max-w-6xl mx-auto">
+            <Reveal>
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-14 border-b border-gray-200 dark:border-white/[0.07] pb-8 gap-4">
+                <h2 className="ft-display text-[clamp(48px,7vw,80px)] text-gray-900 dark:text-white">FEATURES</h2>
+                <p className="text-gray-400 dark:text-white/25 text-sm max-w-xs md:text-right font-light leading-relaxed">
+                  No fluff. Every feature built around one goal — help you lift more next session.
+                </p>
+              </div>
+            </Reveal>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 dark:bg-white/[0.06]">
+              {features.map((f, i) => (
+                <Reveal key={f.n} delay={i * 45}>
+                  <div className="bg-gray-50 dark:bg-[#070707] p-6 lg:p-7 hover:bg-white dark:hover:bg-white/[0.025] transition-colors group h-full">
+                    <div className="ft-display text-[52px] text-gray-200 dark:text-white/[0.07] group-hover:text-green-200 dark:group-hover:text-[#00ff88]/15 transition-colors leading-none mb-5">
+                      {f.n}
+                    </div>
+                    <h3 className="font-semibold text-gray-800 dark:text-white/90 text-[13px] uppercase tracking-wider mb-2.5">{f.title}</h3>
+                    <p className="text-gray-500 dark:text-white/30 text-[13px] leading-relaxed font-light">{f.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── How it works ── */}
+        <section className="py-24 px-6 border-y border-gray-200 dark:border-white/[0.06] bg-gray-100/60 dark:bg-white/[0.015]">
+          <div className="max-w-6xl mx-auto">
+            <Reveal>
+              <h2 className="ft-display text-[clamp(48px,7vw,80px)] text-gray-900 dark:text-white mb-14">HOW IT WORKS</h2>
+            </Reveal>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200 dark:bg-white/[0.06]">
+              {steps.map((s, i) => (
+                <Reveal key={s.n} delay={i * 100}>
+                  <div className="bg-gray-50 dark:bg-[#070707] p-10 relative overflow-hidden group hover:bg-white dark:hover:bg-white/[0.02] transition-colors">
+                    <div className="ft-display text-[140px] leading-none text-gray-100 dark:text-white/[0.035] absolute -top-6 -left-3 select-none group-hover:text-green-100 dark:group-hover:text-[#00ff88]/[0.04] transition-colors">
+                      {s.n}
+                    </div>
+                    <div className="relative">
+                      <div className="w-8 h-[2px] bg-green-500 dark:bg-[#00ff88] mb-7" />
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-base mb-3">{s.title}</h3>
+                      <p className="text-gray-500 dark:text-white/35 text-sm leading-relaxed font-light">{s.desc}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Stats bar ── */}
         <Reveal>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            Free to use · No credit card
-          </div>
-        </Reveal>
-        <Reveal delay={80}>
-          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-tight">
-            The gym tracker that{' '}
-            <span className="bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent">
-              actually works
-            </span>
-          </h1>
-        </Reveal>
-        <Reveal delay={160}>
-          <p className="mt-5 text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto leading-relaxed">
-            Log sets, hit PRs, build streaks and see your strength grow — all in one clean app built for people who take training seriously.
-          </p>
-        </Reveal>
-        <Reveal delay={240}>
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/register"
-              className="px-8 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl shadow-xl shadow-green-500/30 hover:scale-105 active:scale-95 transition-all text-base">
-              Start tracking free →
-            </Link>
-            <Link href="/login"
-              className="px-8 py-3.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold rounded-xl transition-all text-base">
-              Sign in
-            </Link>
-          </div>
-        </Reveal>
-
-        {/* Floating stat pills */}
-        <Reveal delay={340}>
-          <div className="mt-12 flex flex-wrap justify-center gap-4">
+          <div className="border-b border-gray-200 dark:border-white/[0.06] grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200 dark:divide-white/[0.06]">
             {[
-              { value: '50+', label: 'Exercises' },
-              { value: 'PRs', label: 'Auto-detected' },
-              { value: '100%', label: 'Free' },
+              { value: '50+', label: 'Built-in exercises' },
+              { value: 'Real-time', label: 'PR detection' },
+              { value: 'Free', label: 'Forever, no catch' },
+              { value: 'PWA', label: 'Works offline' },
             ].map(s => (
-              <div key={s.label} className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                <span className="text-xl font-extrabold text-green-500">{s.value}</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{s.label}</span>
+              <div key={s.label} className="px-8 py-10 text-center hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors">
+                <div className="ft-display text-[42px] text-green-500 dark:text-[#00ff88]">{s.value}</div>
+                <div className="text-gray-400 dark:text-white/25 text-xs uppercase tracking-widest mt-1">{s.label}</div>
               </div>
             ))}
           </div>
         </Reveal>
-      </section>
 
-      {/* ── Features ── */}
-      <section className="py-20 px-5 bg-gray-50 dark:bg-gray-900/50">
-        <div className="max-w-5xl mx-auto">
-          <Reveal>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Everything you need to progress</h2>
-              <p className="mt-3 text-gray-500 dark:text-gray-400 text-base max-w-xl mx-auto">
-                No fluff. Every feature is built around one goal — helping you lift more next session.
-              </p>
-            </div>
-          </Reveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {features.map((f, i) => (
-              <Reveal key={f.title} delay={i * 60}>
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:-translate-y-1 transition-all duration-200 h-full">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${f.color}`}>
-                    {f.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">{f.title}</h3>
-                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{f.desc}</p>
+        {/* ── CTA ── */}
+        <section className="py-24 px-6">
+          <div className="max-w-6xl mx-auto">
+            <Reveal>
+              <div className="relative border border-green-200 dark:border-[#00ff88]/15 p-12 md:p-20 group hover:border-green-400 dark:hover:border-[#00ff88]/30 transition-colors overflow-hidden">
+                {/* Corner brackets */}
+                <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-green-400 dark:border-[#00ff88]/40" />
+                <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-green-400 dark:border-[#00ff88]/40" />
+                <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-green-400 dark:border-[#00ff88]/40" />
+                <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-green-400 dark:border-[#00ff88]/40" />
+                <div className="absolute inset-0 bg-green-500/[0.02] dark:bg-[#00ff88]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="relative max-w-2xl">
+                  <h2 className="ft-display text-[clamp(48px,8vw,100px)] leading-[0.9] text-gray-900 dark:text-white mb-6">
+                    READY TO<br />
+                    <span className="text-green-500 dark:text-[#00ff88]">GET STRONGER?</span>
+                  </h2>
+                  <p className="text-gray-500 dark:text-white/35 text-lg mb-10 font-light max-w-md leading-relaxed">
+                    Free forever. No ads. No subscriptions. Just you, the bar, and your progress.
+                  </p>
+                  <Link href="/register"
+                    className="inline-block px-10 py-4 bg-green-500 dark:bg-[#00ff88] text-white dark:text-black font-bold uppercase tracking-widest text-sm hover:bg-green-600 dark:hover:bg-white dark:hover:text-black transition-colors">
+                    Create free account →
+                  </Link>
                 </div>
-              </Reveal>
-            ))}
+              </div>
+            </Reveal>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── How it works ── */}
-      <section className="py-20 px-5">
-        <div className="max-w-3xl mx-auto">
-          <Reveal>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Up and running in 60 seconds</h2>
-              <p className="mt-3 text-gray-500 dark:text-gray-400 text-base">No tutorial. No onboarding flow. Just open and go.</p>
-            </div>
-          </Reveal>
-          <div className="space-y-6">
-            {steps.map((s, i) => (
-              <Reveal key={s.step} delay={i * 100}>
-                <div className="flex items-start gap-5 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                  <span className="text-3xl font-extrabold text-green-500/30 dark:text-green-400/30 leading-none flex-shrink-0 w-12 text-center">
-                    {s.step}
-                  </span>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white">{s.title}</h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{s.desc}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
+        {/* ── Footer ── */}
+        <footer className="border-t border-gray-200 dark:border-white/[0.06] py-8 px-6">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <span className="ft-display text-xl text-green-500/70 dark:text-[#00ff88]/50">FITTRACK</span>
+            <span className="text-gray-300 dark:text-white/15 text-[10px] uppercase tracking-widest">
+              © {new Date().getFullYear()} · Free forever
+            </span>
           </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="py-20 px-5">
-        <Reveal>
-          <div className="max-w-2xl mx-auto text-center bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-10 shadow-2xl shadow-green-500/30 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute -top-10 -right-10 w-60 h-60 rounded-full bg-white" />
-              <div className="absolute -bottom-16 -left-8 w-48 h-48 rounded-full bg-white" />
-            </div>
-            <div className="relative">
-              <h2 className="text-3xl font-extrabold text-white tracking-tight">Ready to start lifting smarter?</h2>
-              <p className="mt-3 text-green-100 text-base">Free forever. No ads. No subscriptions.</p>
-              <Link href="/register"
-                className="mt-8 inline-block px-10 py-3.5 bg-white hover:bg-green-50 text-green-600 font-bold rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all text-base">
-                Create free account →
-              </Link>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* ── Footer ── */}
-      {/* <footer className="py-8 text-center text-xs text-gray-400 border-t border-gray-100 dark:border-gray-800">
-        © {new Date().getFullYear()} FitTrack. All rights reserved.
-      </footer> */}
-    </div>
+        </footer>
+      </div>
+    </>
   );
 }
