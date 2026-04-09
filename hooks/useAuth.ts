@@ -15,7 +15,12 @@ export function useAuth() {
     }
     authApi.me()
       .then(res => setUser(res.data.user))
-      .catch(() => removeToken())
+      .catch((err) => {
+        // Only invalidate the token on 401 (expired/invalid).
+        // Network errors and 5xx (e.g. server waking up on Render) should NOT
+        // wipe the token — the user is still authenticated, the server is just slow.
+        if (err?.response?.status === 401) removeToken();
+      })
       .finally(() => setLoading(false));
   }, []);
 
