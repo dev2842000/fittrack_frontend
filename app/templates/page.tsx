@@ -51,7 +51,7 @@ function TemplateList() {
     setStarting(templateId);
     try {
       await api.post(`/workouts/from-template/${templateId}`);
-      router.push('/workout/log');
+      router.push(`/workout/log?template=${templateId}`);
     } catch (err: any) {
       if (err.response?.status === 409) {
         router.push('/workout/log');
