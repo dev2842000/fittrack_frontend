@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
   user: User;
 }
 
@@ -25,14 +25,11 @@ export const authApi = {
   login: (data: { email: string; password: string }) =>
     api.post<AuthResponse>('/auth/login', data),
 
+  refresh: () =>
+    api.post<{ accessToken: string }>('/auth/refresh'),
+
+  logout: () =>
+    api.post('/auth/logout'),
+
   me: () => api.get<{ user: User }>('/auth/me'),
 };
-
-export const saveToken = (token: string) =>
-  localStorage.setItem('fittrack_token', token);
-
-export const getToken = () =>
-  localStorage.getItem('fittrack_token');
-
-export const removeToken = () =>
-  localStorage.removeItem('fittrack_token');

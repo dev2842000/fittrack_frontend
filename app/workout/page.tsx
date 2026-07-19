@@ -5,7 +5,6 @@ import Link from 'next/link';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
-import { getToken } from '@/lib/auth';
 
 interface WorkoutSummary {
   id: number;
@@ -81,14 +80,10 @@ function WorkoutHistory() {
           <p className="text-green-100 text-sm mt-1 font-medium">All your completed sessions</p>
           <button
             onClick={() => {
-              const token = getToken();
-              const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-              const url = `${base}/workouts/export`;
-              fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-                .then(r => r.blob())
-                .then(blob => {
+              api.get('/workouts/export', { responseType: 'blob' })
+                .then(({ data }) => {
                   const a = document.createElement('a');
-                  a.href = URL.createObjectURL(blob);
+                  a.href = URL.createObjectURL(data);
                   a.download = 'fittrack-export.csv';
                   a.click();
                 });

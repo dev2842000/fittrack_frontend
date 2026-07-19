@@ -1,30 +1,40 @@
 import axios from 'axios';
 
+let accessToken: string | null = null;
+
+export const setAccessToken = (token: string) => { accessToken = token; };
+export const clearAccessToken = () => { accessToken = null; };
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/api`
+    : 'http://localhost:5000/api',
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // sends httpOnly refresh cookie on every request
 });
 
-// Attach JWT token to every request if present
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('fittrack_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
 
-// Redirect to /login on 401
 api.interceptors.response.use(
   res => res,
-  err => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('fittrack_token');
-      window.location.href = '/login';
+  async (error) => {
+    const original = error.config;
+    // On 401, try refreshing once — but not if this IS the refresh call (avoid loop)
+    if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/refresh')) {
+      original._retry = true;
+      try {
+        const { data } = await api.post('/auth/refresh');
+        setAccessToken(data.accessToken);
+        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        return api(original);
+      } catch {
+        clearAccessToken();
+      }
     }
-    return Promise.reject(err);
+    return Promise.reject(error);
   }
 );
 
