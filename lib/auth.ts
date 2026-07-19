@@ -1,3 +1,4 @@
+import axios from 'axios';
 import api from './api';
 
 export interface User {
@@ -12,24 +13,32 @@ export interface AuthResponse {
   user: User;
 }
 
+// Auth calls go through the Next.js proxy (/api/auth/...) so the httpOnly
+// cookie is set on vercel.app — first-party, works on Safari and PWA.
+const authProxy = axios.create({
+  baseURL: '/api/auth',
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
+});
+
 export const authApi = {
   register: (data: { name: string; email: string; password: string }) =>
-    api.post<{ message: string; email: string }>('/auth/register', data),
+    authProxy.post<{ message: string; email: string }>('/register', data),
 
   verifyOtp: (data: { email: string; otp: string }) =>
-    api.post<AuthResponse>('/auth/verify-otp', data),
+    authProxy.post<AuthResponse>('/verify-otp', data),
 
   resendOtp: (data: { email: string }) =>
-    api.post<{ message: string }>('/auth/resend-otp', data),
+    authProxy.post<{ message: string }>('/resend-otp', data),
 
   login: (data: { email: string; password: string }) =>
-    api.post<AuthResponse>('/auth/login', data),
+    authProxy.post<AuthResponse>('/login', data),
 
   refresh: () =>
-    api.post<{ accessToken: string }>('/auth/refresh'),
+    authProxy.post<{ accessToken: string }>('/refresh'),
 
   logout: () =>
-    api.post('/auth/logout'),
+    authProxy.post('/logout'),
 
   me: () => api.get<{ user: User }>('/auth/me'),
 };
