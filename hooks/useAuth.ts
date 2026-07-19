@@ -2,28 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { authApi, User } from '@/lib/auth';
-import { setAccessToken, clearAccessToken, getAccessToken } from '@/lib/api';
+import { setAccessToken, clearAccessToken } from '@/lib/api';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (getAccessToken()) {
-      // Token already in memory (e.g. just logged in, client-side nav) — skip refresh
-      authApi.me()
-        .then(res => setUser(res.data.user))
-        .finally(() => setLoading(false));
-      return;
-    }
-    // No token in memory — page reload scenario, restore session via cookie
-    authApi.refresh()
-      .then(({ data }) => {
-        setAccessToken(data.accessToken);
-        return authApi.me();
-      })
+    // Call /auth/me directly — interceptor handles 401 by refreshing automatically
+    authApi.me()
       .then(res => setUser(res.data.user))
-      .catch(() => {})
+      .catch(() => {}) // not logged in or refresh failed — fine
       .finally(() => setLoading(false));
   }, []);
 
