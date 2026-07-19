@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-let accessToken: string | null = null;
+const KEY = 'fittrack_token';
+const ls = () => (typeof window !== 'undefined' ? window.localStorage : null);
 
-export const setAccessToken = (token: string) => { accessToken = token; };
-export const clearAccessToken = () => { accessToken = null; };
-export const getAccessToken = () => accessToken;
+export const setAccessToken = (token: string) => ls()?.setItem(KEY, token);
+export const clearAccessToken = () => ls()?.removeItem(KEY);
+export const getAccessToken = () => ls()?.getItem(KEY) ?? null;
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL
@@ -15,7 +16,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(config => {
-  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  const token = getAccessToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
