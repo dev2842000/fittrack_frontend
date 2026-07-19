@@ -9,14 +9,10 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // On mount, try to restore session via refresh cookie (survives page reload)
-    authApi.refresh()
-      .then(({ data }) => {
-        setAccessToken(data.accessToken);
-        return authApi.me();
-      })
+    // Call /auth/me directly — interceptor handles 401 by refreshing automatically
+    authApi.me()
       .then(res => setUser(res.data.user))
-      .catch(() => {}) // not logged in — fine
+      .catch(() => {}) // not logged in or refresh failed — fine
       .finally(() => setLoading(false));
   }, []);
 
