@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { authApi, saveToken } from '@/lib/auth';
+import { authApi } from '@/lib/auth';
+import { setAccessToken } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { btn } from '@/lib/theme';
 
@@ -72,7 +73,7 @@ function VerifyOtpForm() {
     setSubmitting(true);
     try {
       const res = await authApi.verifyOtp({ email, otp });
-      saveToken(res.data.token);
+      setAccessToken(res.data.accessToken);
       router.push('/onboarding');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Verification failed');

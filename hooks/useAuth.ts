@@ -1,33 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authApi, saveToken, removeToken, getToken, User } from '@/lib/auth';
+import { authApi, User } from '@/lib/auth';
+import { setAccessToken, clearAccessToken } from '@/lib/api';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    authApi.me()
-      .then(res => setUser(res.data.user))
-      .catch((err) => {
-        // Only invalidate the token on 401 (expired/invalid).
-        // Network errors and 5xx (e.g. server waking up on Render) should NOT
-        // wipe the token — the user is still authenticated, the server is just slow.
-        if (err?.response?.status === 401) removeToken();
+    // On mount, try to restore session via refresh cookie (survives page reload)
+    authApi.refresh()
+      .then(({ data }) => {
+        setAccessToken(data.accessToken);
+        return authApi.me();
       })
+      .then(res => setUser(res.data.user))
+      .catch(() => {}) // not logged in — fine
       .finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
     const res = await authApi.login({ email, password });
-    saveToken(res.data?.token || '');
-    setUser(res.data?.user || null);
+    setAccessToken(res.data.accessToken);
+    setUser(res.data.user);
     return res.data;
   };
 
@@ -36,8 +32,9 @@ export function useAuth() {
     return res.data;
   };
 
-  const logout = () => {
-    removeToken();
+  const logout = async () => {
+    await authApi.logout().catch(() => {});
+    clearAccessToken();
     setUser(null);
   };
 
